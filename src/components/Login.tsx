@@ -11,7 +11,7 @@ const Login = () => {
   return (
     <div className="w-full h-screen flex items-center justify-center">
       <div className="w-full max-w-sm md:max-w-md lg:max-w-md bg-white flex-col flex items-center gap-3 rounded-xl shadow-slate-500 shadow-lg p-10">
-        <h1 className="text-lg md:text-xl  text-gray-900 font-bold">Welcome Back</h1>
+        <h1 className="text-lg md:text-xl  text-emerald-800 font-bold">Welcome Back</h1>
         <p className="text-xs md:text-sm text-gray-500 text-center">
           Don't have an account? <span className="text-white">Sign up</span>
         </p>

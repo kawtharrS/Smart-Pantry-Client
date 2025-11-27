@@ -11,7 +11,7 @@ const Register = () => {
   return (
     <div className="w-full h-screen flex items-center justify-center">
       <div className="w-full max-w-sm md:max-w-md lg:max-w-md bg-white flex-col flex items-center gap-3 rounded-xl shadow-slate-500 shadow-lg p-10">
-        <h1 className="text-lg md:text-xl  text-gray-900 font-bold">Welcome</h1>
+        <h1 className="text-lg md:text-xl  text-emerald-800 font-bold">Welcome</h1>
 
         <div className="w-full flex flex-col gap-3">
           <div className="w-full flex items-center gap-2 bg-gray-300 p-2 rounded-xl">

@@ -4,7 +4,6 @@ import Guide from '../components/Guide'
 import Footer from '../components/Footer'
 
 function Landing() {
-
   return (
     <>
       <section>

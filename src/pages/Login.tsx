@@ -1,12 +1,10 @@
-import Login from "../components/login"
+import Login from "../components/Login";
 
-function Landing() {
+function LoginPage() {
 
   return (
-    <>
-        <Login />
-    </>
+    <Login />
   )
 }
 
-export default Landing
+export default LoginPage;

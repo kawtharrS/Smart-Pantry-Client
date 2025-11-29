@@ -52,7 +52,7 @@ const Register = () => {
             )}
           </div>
         </div>
-        <button className = "w-full p-2 !bg-amber-500 rounded-xl mt-3 hover:bg-amber-600">Register</button>
+        <button className = "w-full p-2 bg-amber-500 rounded-xl mt-3 hover:bg-amber-600">Register</button>
 
         </div>
         </div>

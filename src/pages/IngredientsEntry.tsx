@@ -3,6 +3,7 @@ import SideBar from '../components/sideBarNav';
 import Navbar from '../components/NavbarHousehold';
 import BarToDo from '../components/BarToDo';
 import CardIngredient from '../components/CardIngredient';
+import axios from "axios";
 
 interface Ingredient {
   id: number;
@@ -30,16 +31,17 @@ interface ApiResponse {
 }
 
 function IngredientsEntry() {
+  
   const { isPending, error, data } = useQuery<ApiResponse>({
     queryKey: ["ingredientData"],
     queryFn: async () => {
-      const response = await fetch("http://127.0.0.1:8000/api/ingredient/ingredients");
+      const response = await axios("http://127.0.0.1:8000/api/ingredient/ingredients");
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response) {
+        throw new Error(`HTTP error!`);
       }
       
-      const result = await response.json();
+      const result = await response.data;
       console.log('API Response data', result);
       console.log('Payload:', result.payload);
       return result;
@@ -58,10 +60,12 @@ function IngredientsEntry() {
         protein: item.proteinPer100g,
         fats: item.fatsPer100g,
         carbs: item.carbsPer100g,
-        textColor:"text-gray-600"
+        textColor: "text-gray-600"
       };
     });
   };
+
+
 
   if (isPending) return (
     <section className="flex">
@@ -79,7 +83,7 @@ function IngredientsEntry() {
   );
 
   if (error) return (
-    <section className="flex">
+    <section className="flex w-screen">
       <SideBar />
       <div className="flex-1 ml-64 min-h-screen bg-gray-50">
         <Navbar />
@@ -105,12 +109,13 @@ function IngredientsEntry() {
         <Navbar />
         <BarToDo />
         
-        <div className="p-6">
-          <div className="mt-20 w-screen ">
-            <h2 className="text-2xl font-bold mb-6">
-              Available Ingredients {data?.payload && `(${cardsData.length})`}
-            </h2>
-            
+        <div className="p-6 w-screen">
+          <div className="mt-20">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">
+                Available Ingredients {data?.payload && `(${cardsData.length})`}
+              </h2>
+            </div>
             {cardsData.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-gray-500">No ingredients found.</p>
@@ -133,6 +138,8 @@ function IngredientsEntry() {
           </div>
         </div>
       </div>
+
+      
     </section>
   );
 }

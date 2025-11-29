@@ -1,5 +1,6 @@
 
 const SideBar = () => {
+
   return (
     <nav className="fixed left-0 top-20 h-screen w-64 bg-white/30 backdrop-blur-md shadow-md z-20">
       <div className="flex flex-col h-full p-4">

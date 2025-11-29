@@ -10,7 +10,7 @@ const Choose = () => {
         </Link>
         <h1 className="text-lg md:text-xl  text-emerald-800 font-bold">Choose to</h1>
 
-        <Link to="/" className = "w-full p-2 !bg-amber-500 rounded-xl mt-3 hover:bg-amber-600 !text-white text-center">Create a Household</Link>
+        <Link to="/HouseholdMain" className = "w-full p-2 !bg-amber-500 rounded-xl mt-3 hover:bg-amber-600 !text-white text-center">Create a Household</Link>
         <button className = "w-full p-2 !bg-amber-500 rounded-xl mt-3 hover:bg-amber-600">Join a Household</button>
 
 

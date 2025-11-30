@@ -33,10 +33,11 @@ interface ApiResponse {
 
 function RecipeEntry() {
   
-  const onclick=async (id:number)=>{
+  const onclick = async (id: number) => {
     alert("item deleted");
     await axios.get(`http://127.0.0.1:8000/api/recipe/delete/${id}`);
   }
+
   const { isPending, error, data } = useQuery<ApiResponse>({
     queryKey: ["ingredientData"],
     queryFn: async () => {
@@ -65,35 +66,35 @@ function RecipeEntry() {
         prep_time_min: item.prep_time_min,
         cook_time_min: item.cook_time_min,
         serving: item.serving,
-        textColor: "text-gray-600"
+        textColor: "text-amber-600"
       };
     });
   };
 
-
+  const cardsData = transformApiData(data?.payload || []);
 
   if (isPending) return (
-    <section className="flex">
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
       <SideBar />
-      <div className="flex-1 ml-64 min-h-screen bg-gray-50">
-        <Navbar />
+      <main className="ml-64 pt-20">
         <BarToDoRecipe />
-        <div className="p-6 mt-40">
+        <div className="p-8">
           <div className="flex items-center justify-center min-h-96">
             <div className="text-lg">Loading Recipes...</div>
           </div>
         </div>
-      </div>
-    </section>
+      </main>
+    </div>
   );
 
   if (error) return (
-    <section className="flex w-screen">
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
       <SideBar />
-      <div className="flex-1 ml-64 min-h-screen bg-gray-50">
-        <Navbar />
+      <main className="ml-64 pt-20">
         <BarToDoRecipe />
-        <div className="p-6 mt-40">
+        <div className="p-8">
           <div className="flex items-center justify-center min-h-96">
             <div className="text-red-500 text-center">
               <h2 className="text-xl font-bold mb-2">Error Loading Data</h2>
@@ -101,49 +102,46 @@ function RecipeEntry() {
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </main>
+    </div>
   );
-
-  const cardsData = transformApiData(data?.payload || []);
 
   return (
-    <section className="flex">
+    <div className="min-h-screen bg-gray-50 w-screen">
+      <Navbar />
       <SideBar />
-      <div className="flex-1 ml-64 min-h-screen bg-gray-50">
-        <Navbar />
+      
+      <main className="ml-64 pt-20">
         <BarToDoRecipe />
         
-        <div className="p-6 w-screen">
-          <div className="mt-35">
-            {cardsData.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500">No Recipes found.</p>
+        <div className="p-8 mt-15">
+          {cardsData.length === 0 ? (
+            <div className="flex items-center justify-center">
+              <div className="text-gray-500 text-center">
+                <h2 className="text-xl font-bold mb-2">No Recipes Yet</h2>
+                <p>Start by adding your first recipe!</p>
               </div>
-            ) : (
-              <div className="flex flex-wrap gap-6">
-                {cardsData.map((card) => (
-                  <CardRecipe
-                    key={card.id}
-                    id={card.id}
-                    title={card.title}
-                    description={card.description}
-                    prep_time_min={card.prep_time_min}
-                    cook_time_min={card.cook_time_min}
-                    serving={card.serving}
-                    textColor={card.textColor}
-                    onClick={onclick}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex flex-cols-1 md:flex-cols-2 lg:flex-cols-3 xl:flex-cols-4 gap-6">
+              {cardsData.map((card) => (
+                <CardRecipe
+                  key={card.id}
+                  id={card.id}
+                  title={card.title}
+                  description={card.description}
+                  prep_time_min={card.prep_time_min}
+                  cook_time_min={card.cook_time_min}
+                  serving={card.serving}
+                  textColor={card.textColor}
+                  onClick={onclick}
+                />
+              ))}
+            </div>
+          )}
         </div>
-      </div>
-
-      
-    </section>
-  );
-}
+      </main>
+    </div>
+  );}
 
 export default RecipeEntry;

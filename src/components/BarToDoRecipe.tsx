@@ -2,55 +2,51 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 
-interface Ingredient {
-  name: string;
-  unit_id: number;
-  caloriesPer100g: string;
-  proteinPer100g: string;
-  fatsPer100g: string;
-  carbsPer100g: string;
-  expiry_date:string;
-  quantity:string;
+interface Recipe {
+  household_id:number;
+  user_id:number;
+  title: string;
+  description: string;
+  prep_time_min: number;
+  cook_time_min: number;
+  serving: number;
 }
 
-const BarToDo = () => {
+const BarToDoRecipe = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newIngredient, setNewIngredient] = useState({
-    name: "",
-    calories: "",
-    protein: "",
-    fats: "",
-    carbs: "",
-    quantity: "", 
-    expiry_date: "", 
+  const [newRecipe, setNewRecipe] = useState({
+    title: "",
+    description: "",
+    prep_time_min: "",
+    cook_time_min: "",
+    serving: "",
   });
 
   const addIngredientMutation = useMutation({
-      mutationFn: async (data: Ingredient) => {
+      mutationFn: async (data: Recipe) => {
         const response = await axios.post(
-          "http://127.0.0.1:8000/api/ingredient/add",
+          "http://127.0.0.1:8000/api/recipe/add",
           data
         );
         return response.data;
       },
       onSuccess: (result) => {
         console.log("Ingredient added:", result);
-        setNewIngredient({ name: "", calories: "", protein: "", fats: "", carbs: "" , quantity:"", expiry_date:""});
+        setNewRecipe({ title: "", description: "", prep_time_min: "", cook_time_min: "", serving: ""});
         setIsModalOpen(false);
       },
       onError: (error) => console.error("Failed to add ingredient:", error),
     });
 
   const handleAddIngredient = () => {
-    const dataIng: Ingredient = {
-      name: newIngredient.name,
-      unit_id: 1,
-      caloriesPer100g: newIngredient.calories,
-      proteinPer100g: newIngredient.protein,
-      fatsPer100g: newIngredient.fats,
-      carbsPer100g: newIngredient.carbs,
-      expiry_date:newIngredient.expiry_date,
-      quantity:newIngredient.quantity,
+    const dataIng: Recipe = {
+      household_id: 1,
+      user_id:1,
+      title: newRecipe.title,
+      description: newRecipe.description,
+      prep_time_min: parseInt(newRecipe.prep_time_min),
+      cook_time_min: parseInt(newRecipe.cook_time_min),
+      serving:parseInt(newRecipe.serving),
     };
 
     addIngredientMutation.mutate(dataIng);
@@ -58,25 +54,23 @@ const BarToDo = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setNewIngredient((prev) => ({
+    setNewRecipe((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
   const fields = [
-    { name: "calories", label: "Calories (per 100g)" },
-    { name: "protein", label: "Protein (g)" },
-    { name: "fats", label: "Fats (g)" },
-    { name: "carbs", label: "Carbs (g)" },
-    { name: "quantity", label:"Quantity"},
+    { name: "prep_time_min", label: "Time to Prepare" },
+    { name: "cook_time_min", label: "Time to cook" },
+    { name: "serving", label:"Serving"},
 
   ];
 
   return (
     <>
       <div className="flex fixed rounded-r-2xl top-20 left-64 p-3 bg-gray-400 backdrop-blur-md shadow-md w-[calc(100%-16rem)] z-40 justify-between">
-        <h2 className="p-2 font-bold text-xl flex-1">Create your own Item List</h2>
+        <h2 className="p-2 font-bold text-xl flex-1">Create your own Recipe List</h2>
         <button
           onClick={() => setIsModalOpen(true)}
           className="!bg-white shadow-md px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-black font-black text-3xl"
@@ -97,14 +91,25 @@ const BarToDo = () => {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ingredient Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Recipe Name</label>
                 <input
                   type="text"
-                  name="name"
-                  value={newIngredient.name}
+                  name="title"
+                  value={newRecipe.title}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
                   placeholder="e.g., Tomato, Chicken Breast"
+                />
+              </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Recipe Description</label>
+                <input
+                  type="text"
+                  name="description"
+                  value={newRecipe.description}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
+                  placeholder="note about the recipe"
                 />
               </div>
 
@@ -115,7 +120,7 @@ const BarToDo = () => {
                     <input
                       type="number"
                       name={field.name}
-                      value={newIngredient[field.name as keyof typeof newIngredient]}
+                      value={newRecipe[field.name as keyof typeof newRecipe]}
                       onChange={handleInputChange}
                       min={0}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
@@ -125,16 +130,6 @@ const BarToDo = () => {
                   
                   
                 ))}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
-              <input
-                type="date"
-                name="expiry_date"
-                value={newIngredient.expiry_date}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
-              />
-            </div>
 
               </div>
 
@@ -145,7 +140,7 @@ const BarToDo = () => {
                 className={`w-full bg-amber-600 hover:bg-green-700 text-white py-2 rounded-lg font-semibold transition-colors 
                 }`}
               >
-                Add Ingredient 
+                Add Recipe 
               </button>
 
               {addIngredientMutation.isError && (
@@ -159,4 +154,4 @@ const BarToDo = () => {
   );
 };
 
-export default BarToDo;
+export default BarToDoRecipe;

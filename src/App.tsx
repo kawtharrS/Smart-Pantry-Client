@@ -5,6 +5,8 @@ import Login from './pages/Login';
 import Choose from './pages/choose';
 import HouseholdMain from './pages/householdMain';
 import IngredientsEntry from './pages/IngredientsEntry';
+import RecipeEntry from './pages/RecipePage';
+
 import MealPlan from './pages/MealPlan';
 import './App.css';
 
@@ -28,6 +30,7 @@ function App() {
             <Route path="/choose" element={<Choose />} />
             <Route path="/householdMain" element={<HouseholdMain />} />
             <Route path="/ingEntry" element={<IngredientsEntry />} />
+            <Route path="/recipeEntry" element={<RecipeEntry />} />
             <Route path="/mealplan" element={<MealPlan />} />
           </Routes>
         </div>

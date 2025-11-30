@@ -1,19 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import SideBar from '../components/sideBarNav';
 import Navbar from '../components/NavbarHousehold';
-import BarToDo from '../components/BarToDo';
-import CardIngredient from '../components/CardIngredient';
+import BarToDoRecipe from '../components/BarToDoRecipe';
+import CardRecipe from '../components/CardRecipe';
 import axios from "axios";
 
-interface Ingredient {
+interface Recipe {
   id: number;
-  name: string;
-  calories: number;
-  fats: number;
-  carbs: number;
-  protein: number;
-  expiry_date:string;
-  quantity:number;
+  title: string;
+  description: string;
+  prep_time_min: number;
+  cook_time_min: number;
+  serving: number;
   textColor?: string;
 }
 
@@ -21,29 +19,28 @@ interface ApiResponse {
   status: string;
   payload: {
     id: number;
-    unit_id: number;
-    name: string;
-    caloriesPer100g: number;
-    proteinPer100g: number;
-    fatsPer100g: number;
-    carbsPer100g: number;
-    expiry_date:string;
-    quantity:number;
+    household_id: number;
+    user_id: number;
+    title: string;
+    description: string;
+    prep_time_min: number;
+    cook_time_min: number;
+    serving: number;
     created_at: string;
     updated_at: string;
   }[];
 }
 
-function IngredientsEntry() {
+function RecipeEntry() {
   
   const onclick=async (id:number)=>{
     alert("item deleted");
-    await axios.get(`http://127.0.0.1:8000/api/ingredient/delete/${id}`);
+    await axios.get(`http://127.0.0.1:8000/api/recipe/delete/${id}`);
   }
   const { isPending, error, data } = useQuery<ApiResponse>({
     queryKey: ["ingredientData"],
     queryFn: async () => {
-      const response = await axios.get("http://127.0.0.1:8000/api/ingredient/ingredients");
+      const response = await axios.get("http://127.0.0.1:8000/api/recipe/recipes");
       
       if (!response) {
         throw new Error(`HTTP error!`);
@@ -57,19 +54,17 @@ function IngredientsEntry() {
     retry: 1,
   });
 
-  const transformApiData = (apiData: ApiResponse['payload']): Ingredient[] => {
+  const transformApiData = (apiData: ApiResponse['payload']): Recipe[] => {
     if (!apiData || !Array.isArray(apiData)) return [];
     
     return apiData.map((item) => {
       return {
         id: item.id,
-        name: item.name,
-        calories: item.caloriesPer100g,
-        protein: item.proteinPer100g,
-        fats: item.fatsPer100g,
-        carbs: item.carbsPer100g,
-        expiry_date:item.expiry_date,
-        quantity:item.quantity,
+        title: item.title,
+        description: item.description,
+        prep_time_min: item.prep_time_min,
+        cook_time_min: item.cook_time_min,
+        serving: item.serving,
         textColor: "text-gray-600"
       };
     });
@@ -82,10 +77,10 @@ function IngredientsEntry() {
       <SideBar />
       <div className="flex-1 ml-64 min-h-screen bg-gray-50">
         <Navbar />
-        <BarToDo />
+        <BarToDoRecipe />
         <div className="p-6 mt-40">
           <div className="flex items-center justify-center min-h-96">
-            <div className="text-lg">Loading ingredients...</div>
+            <div className="text-lg">Loading Recipes...</div>
           </div>
         </div>
       </div>
@@ -97,7 +92,7 @@ function IngredientsEntry() {
       <SideBar />
       <div className="flex-1 ml-64 min-h-screen bg-gray-50">
         <Navbar />
-        <BarToDo />
+        <BarToDoRecipe />
         <div className="p-6 mt-40">
           <div className="flex items-center justify-center min-h-96">
             <div className="text-red-500 text-center">
@@ -117,27 +112,25 @@ function IngredientsEntry() {
       <SideBar />
       <div className="flex-1 ml-64 min-h-screen bg-gray-50">
         <Navbar />
-        <BarToDo />
+        <BarToDoRecipe />
         
         <div className="p-6 w-screen">
           <div className="mt-35">
             {cardsData.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-500">No ingredients found.</p>
+                <p className="text-gray-500">No Recipes found.</p>
               </div>
             ) : (
               <div className="flex flex-wrap gap-6">
                 {cardsData.map((card) => (
-                  <CardIngredient
+                  <CardRecipe
                     key={card.id}
                     id={card.id}
-                    name={card.name}
-                    calories={card.calories}
-                    fats={card.fats}
-                    carbs={card.carbs}
-                    protein={card.protein}
-                    quantity={card.quantity}
-                    expiry_date={card.expiry_date}
+                    title={card.title}
+                    description={card.description}
+                    prep_time_min={card.prep_time_min}
+                    cook_time_min={card.cook_time_min}
+                    serving={card.serving}
                     textColor={card.textColor}
                     onClick={onclick}
                   />
@@ -153,4 +146,4 @@ function IngredientsEntry() {
   );
 }
 
-export default IngredientsEntry;
+export default RecipeEntry;

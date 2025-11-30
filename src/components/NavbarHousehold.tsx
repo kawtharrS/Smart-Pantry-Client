@@ -43,6 +43,11 @@ const Navbar = () => {
               Ingredients
             </a>
           </li>
+          <li>
+            <Link to="/recipeEntry" className="!text-gray-700 text-2xl hover:text-amber-500 transition-colors">
+              Recipes
+            </Link>
+          </li>
         </ul>
         
         <Link 

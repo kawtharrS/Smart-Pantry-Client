@@ -7,7 +7,7 @@ import HouseholdMain from './pages/householdMain';
 import IngredientsEntry from './pages/IngredientsEntry';
 import RecipeEntry from './pages/RecipePage';
 
-import MealPlan from './pages/MealPlan';
+import WeeklyPlan from './pages/WeeklyMeelPLan';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -31,7 +31,7 @@ function App() {
             <Route path="/householdMain" element={<HouseholdMain />} />
             <Route path="/ingEntry" element={<IngredientsEntry />} />
             <Route path="/recipeEntry" element={<RecipeEntry />} />
-            <Route path="/mealplan" element={<MealPlan />} />
+            <Route path="/mealplan" element={<WeeklyPlan />} />
           </Routes>
         </div>
       </Router>

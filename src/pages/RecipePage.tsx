@@ -4,48 +4,18 @@ import Navbar from '../components/NavbarHousehold';
 import BarToDoRecipe from '../components/BarToDoRecipe';
 import CardRecipe from '../components/CardRecipe';
 import axios from "axios";
+import type {Recipe,ApiResponseRecipe,IngredientRecipe} from '../types';
 
-interface Recipe {
-  id: number;
-  title: string;
-  description: string;
-  prep_time_min: number;
-  cook_time_min: number;
-  serving: number;
-  textColor?: string;
-}
-
-interface ApiResponse {
-  status: string;
-  payload: {
-    id: number;
-    household_id: number;
-    user_id: number;
-    title: string;
-    description: string;
-    prep_time_min: number;
-    cook_time_min: number;
-    serving: number;
-    created_at: string;
-    updated_at: string;
-  }[];
-}
-
-interface Ingredient {
-  id: number;
-  name: string;
-  unit_id?: number;
-}
 
 function RecipeEntry() {
   const {
     data: ingredientsData,
     isPending: ingredientsLoading,
     error: ingredientsError
-  } = useQuery<{ payload: Ingredient[] }>({
+  } = useQuery<{ payload: IngredientRecipe[] }>({
     queryKey: ["ingredientsData"],
     queryFn: async () => {
-      const response = await axios.get("http://127.0.0.1:8000/api/ingredient/ingredients");
+      const response = await axios.get("http://127.0.0.1:8000/api/ingredient/");
       return response.data;
     },
   });
@@ -55,10 +25,10 @@ function RecipeEntry() {
     await axios.get(`http://127.0.0.1:8000/api/recipe/delete/${id}`);
   }
 
-  const { isPending, error, data } = useQuery<ApiResponse>({
+  const { isPending, error, data } = useQuery<ApiResponseRecipe>({
     queryKey: ["recipeData"],
     queryFn: async () => {
-      const response = await axios.get("http://127.0.0.1:8000/api/recipe/recipes");
+      const response = await axios.get("http://127.0.0.1:8000/api/recipe/");
       
       if (!response) {
         throw new Error(`HTTP error!`);
@@ -72,10 +42,11 @@ function RecipeEntry() {
     retry: 1,
   });
 
-  const transformApiData = (apiData: ApiResponse['payload']): Recipe[] => {
+  const transformApiData = (apiData: ApiResponseRecipe['payload']): Recipe[] => {
     if (!apiData || !Array.isArray(apiData)) return [];
     
     return apiData.map((item) => {
+      const ingredientsFromItem = (item as any).ingredients ?? [];
       return {
         id: item.id,
         title: item.title,
@@ -83,6 +54,9 @@ function RecipeEntry() {
         prep_time_min: item.prep_time_min,
         cook_time_min: item.cook_time_min,
         serving: item.serving,
+        household_id: item.household_id ?? 0,
+        user_id: item.user_id ?? 0,
+        ingredients: ingredientsFromItem,
         textColor: "text-amber-600"
       };
     });

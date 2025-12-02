@@ -1,28 +1,9 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
+import type {NewIngredientData} from '../types';
 
-interface Ingredient {
-  id: number;
-  name: string;
-}
-
-interface BarToDoIngredientsProps {
-  ingredients: Ingredient[];
-}
-
-interface NewIngredientData {
-  name: string;
-  unit_id:number;
-  caloriesPer100g: number;
-  proteinPer100g: number;
-  fatsPer100g: number;
-  carbsPer100g: number;
-  expiry_date?: string;
-  quantity?: number;
-}
-
-const BarToDoIngredients = ({ ingredients }: BarToDoIngredientsProps) => {
+const BarToDoIngredients = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newIngredient, setNewIngredient] = useState<NewIngredientData>({
     name: "",
@@ -34,7 +15,6 @@ const BarToDoIngredients = ({ ingredients }: BarToDoIngredientsProps) => {
     expiry_date: "",
     quantity: 0,
   });
-
 
   const addIngredientMutation = useMutation({
     mutationFn: async (data: NewIngredientData) => {

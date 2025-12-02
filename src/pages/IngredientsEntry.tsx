@@ -1,55 +1,39 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import SideBar from '../components/sideBarNav';
 import Navbar from '../components/NavbarHousehold';
 import BarToDoIngredients from '../components/BarToDoIngredients';
 import CardIngredient from '../components/CardIngredient';
 import axios from "axios";
-
-interface Ingredient {
-  id: number;
-  name: string;
-  calories: number;
-  fats: number;
-  carbs: number;
-  protein: number;
-  expiry_date: string;
-  quantity: number;
-  textColor?: string;
-}
-
-interface ApiResponse {
-  status: string;
-  payload: {
-    id: number;
-    unit_id: number;
-    name: string;
-    caloriesPer100g: number;
-    proteinPer100g: number;
-    fatsPer100g: number;
-    carbsPer100g: number;
-    expiry_date: string;
-    quantity: number;
-    created_at: string;
-    updated_at: string;
-  }[];
-}
+import type {Ingredient, ApiResponse} from '../types';
 
 function IngredientsEntry() {
 
-  const onclick = async (id: number) => {
-    alert("item deleted");
-    await axios.delete(`http://127.0.0.1:8000/api/ingredient/delete/${id}`);
-  }
+  const queryClient = useQueryClient();
 
   const { isPending, error, data } = useQuery<ApiResponse>({
-    queryKey: ["ingredientData"],
+    queryKey: ["Ingredient"],
     queryFn: async () => {
-      const response = await axios.get("http://127.0.0.1:8000/api/ingredient/ingredients");
+      const response = await axios.get("http://127.0.0.1:8000/api/ingredient/");
       if (!response) throw new Error("HTTP error!");
       return response.data;
     },
     retry: 1,
   });
+
+  const deleteIngredient = useMutation({
+    mutationFn: async (id: number) => {
+      return await axios.get(`http://127.0.0.1:8000/api/ingredient/delete/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['Ingredient'] });
+    },
+  });
+
+  const onclick = (id: number) => {
+    if (window.confirm('Are you sure you want to remove this recipe?')) {
+      deleteIngredient.mutate(id);
+    }
+  };
 
   const transformApiData = (apiData: ApiResponse['payload']): Ingredient[] => {
     if (!apiData || !Array.isArray(apiData)) return [];

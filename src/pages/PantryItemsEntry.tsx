@@ -4,41 +4,7 @@ import Navbar from '../components/NavbarHousehold';
 import BarToDo from '../components/BarToDo';
 import CardPantryItem from '../components/CardPantryitem';
 import axios from "axios";
-
-interface Ingredient {
-  id: number;
-  name: string;
-}
-
-interface PantryItem {
-  id: number;
-  name: string;
-  quantity: number;
-  expiry_date: string;
-  location?: string;
-  textColor?: string;
-}
-
-interface PantryApiResponse {
-  status: string;
-  payload: {
-    id: number;
-    ingredient: {
-      id: number;
-      name: string;
-    };
-    quantity: number;
-    expiry_date: string;
-    location?: string;
-    created_at: string;
-    updated_at: string;
-  }[];
-}
-
-interface IngredientApiResponse {
-  status: string;
-  payload: Ingredient[];
-}
+import type {PantryItem, PantryApiResponse,IngredientApiResponse} from '../types';
 
 function PantryItemsEntry() {
   const onclick = async (id: number) => {
@@ -59,7 +25,7 @@ function PantryItemsEntry() {
   const { data: ingredientData } = useQuery<IngredientApiResponse>({
     queryKey: ["ingredients"],
     queryFn: async () => {
-      const res = await axios.get("http://127.0.0.1:8000/api/ingredient/ingredients");
+      const res = await axios.get("http://127.0.0.1:8000/api/ingredient/");
       return res.data;
     },
   });
@@ -68,6 +34,7 @@ function PantryItemsEntry() {
     if (!apiData || !Array.isArray(apiData)) return [];
     return apiData.map((item) => ({
       id: item.id,
+      ingredient_id: item.ingredient.id,
       name: item.ingredient.name,
       quantity: item.quantity,
       expiry_date: item.expiry_date,

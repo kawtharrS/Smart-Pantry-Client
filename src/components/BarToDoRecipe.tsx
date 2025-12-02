@@ -56,9 +56,8 @@ const BarToDoRecipe = ({ ingredients, householdId, userId }: BarToDoRecipeProps)
       setRecipeIngredients([{ ingredient_id: 0, quantity: 0, unit_id: 1, note: "" }]);
       setIsModalOpen(false);
     },
-    onError: (error: any) => {
-      console.error("Failed to add recipe:", error);
-      console.error("Error details:", error.response?.data);
+    onError: (error) => {
+      console.error(error);
     },
   });
 
@@ -153,7 +152,6 @@ const BarToDoRecipe = ({ ingredients, householdId, userId }: BarToDoRecipeProps)
             </div>
 
             <div className="space-y-6">
-              {/* Basic Recipe Info */}
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -343,9 +341,6 @@ const BarToDoRecipe = ({ ingredients, householdId, userId }: BarToDoRecipeProps)
               {addRecipeMutation.isError && (
                 <div className="text-red-600 text-sm mt-2 p-2 bg-red-50 rounded">
                   Failed to create recipe.
-                  {addRecipeMutation.error?.response?.data?.message && (
-                    <div>Error: {addRecipeMutation.error.response.data.message}</div>
-                  )}
                 </div>
               )}
             </div>

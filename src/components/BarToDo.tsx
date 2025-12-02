@@ -2,20 +2,7 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-
-interface PantryItem {
-  household_id: number;    
-  ingredient_id: number;  
-  unit_id: number;
-  quantity:number,
-  location?: string;
-  expiry_date?: string;
-}
-
-interface BarToDoProps {
-  ingredients: { id: number; name: string }[];
-  householdId: number;
-}
+import type {PantryItemO, BarToDoProps} from '../types';
 
 const BarToDo = ({ ingredients }: BarToDoProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -28,7 +15,7 @@ const BarToDo = ({ ingredients }: BarToDoProps) => {
   });
 
   const addPantryItemMutation = useMutation({
-    mutationFn: async (data: PantryItem) => {
+    mutationFn: async (data: PantryItemO) => {
       console.log("Sending to backend:", data);
       const response = await axios.post(
         "http://127.0.0.1:8000/api/pantryItem/add",
@@ -78,11 +65,11 @@ const BarToDo = ({ ingredients }: BarToDoProps) => {
       const value = e.target.value;
 
       if (value === "add-new") {
-        navigate("/ingEntry"); // go to ingredient page
+        navigate("/ingEntry"); 
       } else {
         setNewPantryItem((prev) => ({
           ...prev,
-          ingredient_id: Number(value), // update selected ingredient
+          ingredient_id: Number(value), 
         }));
       }
     };
@@ -142,7 +129,7 @@ const BarToDo = ({ ingredients }: BarToDoProps) => {
                 <select
                 name="ingredient_id"
                 value={newPantryItem.ingredient_id}
-                onChange={handleIngredientChange} // handles both selecting and navigation
+                onChange={handleIngredientChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
                 required
               >

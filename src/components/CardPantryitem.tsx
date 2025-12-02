@@ -1,12 +1,4 @@
-interface CardPantryItemProps {
-  id: number;
-  name: string;
-  quantity: number;
-  expiry_date: string;
-  location?: string;
-  textColor?: string;
-  onClick?: (id: number) => void;
-}
+import type {CardPantryItemProps} from '../types';
 
 const CardPantryItem = ({
   id,

@@ -72,7 +72,7 @@ const useRecipeWithIngredients = (recipe_id: number) => {
   return useQuery({
     queryKey: ["recipeWithIngredients", recipe_id],
     queryFn: async (): Promise<RecipeIngredient[]> => {
-      const response = await axios.get("http://127.0.0.1:8000/api/recipe/recipes");
+      const response = await axios.get("http://127.0.0.1:8000/api/recipe/");
       if (!response) {
         throw new Error("HTTP Error!");
       }

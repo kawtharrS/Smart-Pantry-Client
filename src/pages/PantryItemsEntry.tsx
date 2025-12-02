@@ -49,7 +49,7 @@ function PantryItemsEntry() {
   const { isPending, error, data } = useQuery<PantryApiResponse>({
     queryKey: ["pantryItems"],
     queryFn: async () => {
-      const response = await axios.get("http://127.0.0.1:8000/api/pantryItem/pantryItems");
+      const response = await axios.get("http://127.0.0.1:8000/api/pantryItem/");
       if (!response) throw new Error("HTTP error");
       return response.data;
     },

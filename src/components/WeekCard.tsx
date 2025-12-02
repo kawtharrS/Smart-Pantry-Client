@@ -2,49 +2,17 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-
-interface WeekCardProps {
-  day: string;
-}
-
-interface RecipeIngredient {
-  id: number;
-  name: string;
-  unit_id: number;
-  caloriesPer100g: string;
-  proteinPer100g: string;
-  fatPer100g: string;
-  carbsPer100g: string;
-}
-
-interface Recipe {
-  id: number;
-  household_id: number;
-  user_id: number;
-  title: string;
-  description: string;
-  prep_time_min: number;
-  cook_time_min: number;
-  serving: number;
-  ingredients: RecipeIngredient[];
-}
-
-interface MealPlan {
-  id: number;
-  day: string;
-  recipe_id: number;
-  household_id: number;
-  recipe?: Recipe;
-}
+import type {WeekCardProps, RecipeIngredient, Recipe, MealPlan,PantryItem} from '../types';
 
 const WeekCard = ({ day }: WeekCardProps) => {
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: mealPlan, isLoading: mealPlanLoading } = useQuery<MealPlan | null>({
     queryKey: ['mealPlan', day],
     queryFn: async () => {
-      const response = await axios.get(`http://127.0.0.1:8000/api/mealplan/mealplans?day=${day}`);
+      const response = await axios.get(`http://127.0.0.1:8000/api/mealplan/?day=${day}`);
       console.log(response);
       return response.data.payload || null;
     },
@@ -58,18 +26,35 @@ const WeekCard = ({ day }: WeekCardProps) => {
       return response.data.payload || [];
     },
   });
-
-  const saveMealPlan = useMutation({
-    mutationFn: async (recipeId: number) => {
-      const data = { day, recipe_id: recipeId, household_id: 1 };
-      const response = await axios.post('http://127.0.0.1:8000/api/mealplan/add', data);
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['mealPlan', day] });
-      setIsModalOpen(false);
-    },
+    
+  const { data: pantryItems = [] } = useQuery<PantryItem[]>({
+    queryKey: ['pantryItems'],
+    queryFn: async () => {
+      const response = await axios.get('http://127.0.0.1:8000/api/pantryItem/');
+      return response.data.payload || [];
+    }
   });
+
+  const { data: allMealPlans = [] } = useQuery<MealPlan[]>({
+      queryKey: ['allMealPlans'],
+      queryFn: async () => {
+        const response = await axios.get('http://127.0.0.1:8000/api/mealplan/');
+        return response.data.payload || [];
+      },
+    });
+
+  const missingIngredientsAllPlans: RecipeIngredient[] = [];
+
+  allMealPlans.forEach(plan => {
+      plan.recipe?.ingredients.forEach(ingredient => {
+        const isInPantry = pantryItems.some(p => p.ingredient_id === ingredient.id);
+        if (!isInPantry) {
+          if (!missingIngredientsAllPlans.some(i => i.id === ingredient.id)) {
+            missingIngredientsAllPlans.push(ingredient);
+          }
+        }
+      });
+    });
 
   const deleteMealPlan = useMutation({
     mutationFn: async () => {
@@ -83,13 +68,28 @@ const WeekCard = ({ day }: WeekCardProps) => {
     },
   });
 
-  const selectRecipe = (recipeId: number) => saveMealPlan.mutate(recipeId);
+  const saveMealPlan = useMutation({
+    mutationFn: async (recipe_id: number) => {
+      const data = { day, recipe_id: recipe_id, household_id: 1 };
+      const response = await axios.post('http://127.0.0.1:8000/api/mealplan/add', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mealPlan', day] });
+      setIsModalOpen(false);
+    },
+  });
+
+  const selectRecipe = (recipe_id: number) => saveMealPlan.mutate(recipe_id);
+
   const removeRecipe = () => {
     if (mealPlan?.id && window.confirm('Are you sure you want to remove this recipe?')) {
       deleteMealPlan.mutate();
     }
   };
+
   const openModal = () => setIsModalOpen(true);
+
   const closeModal = () => setIsModalOpen(false);
 
   return (
@@ -107,6 +107,16 @@ const WeekCard = ({ day }: WeekCardProps) => {
             <h3 className="text-xl font-bold text-gray-800 mb-2 truncate">{mealPlan.recipe.title}</h3>
             <p className="text-sm text-gray-600 mb-3 line-clamp-2">{mealPlan.recipe.description}</p>
             <div className="grid grid-cols-2 gap-2 text-sm">
+             <ul className="text-gray-700 text-sm">
+              {mealPlan.recipe.ingredients.map(i => {
+                const inPantry = pantryItems.some(p => p.ingredient_id === i.id);
+                return (
+                  <li key={i.id} className={inPantry ? 'text-green-600' : 'text-red-600'}>
+                    {i.name} {inPantry ? '(Available)' : '(Missing)'}
+                  </li>
+                );
+              })}
+            </ul>
               <p className="text-gray-700">
                 <span className="font-semibold">Servings:</span> {mealPlan.recipe.serving}
               </p>
@@ -203,7 +213,10 @@ const WeekCard = ({ day }: WeekCardProps) => {
           </div>
         </div>
       )}
+
     </div>
+
+
   );
 };
 

@@ -31,15 +31,32 @@ interface ApiResponse {
   }[];
 }
 
+interface Ingredient {
+  id: number;
+  name: string;
+  unit_id?: number;
+}
+
 function RecipeEntry() {
-  
+  const {
+    data: ingredientsData,
+    isPending: ingredientsLoading,
+    error: ingredientsError
+  } = useQuery<{ payload: Ingredient[] }>({
+    queryKey: ["ingredientsData"],
+    queryFn: async () => {
+      const response = await axios.get("http://127.0.0.1:8000/api/ingredient/ingredients");
+      return response.data;
+    },
+  });
+
   const onclick = async (id: number) => {
     alert("item deleted");
     await axios.get(`http://127.0.0.1:8000/api/recipe/delete/${id}`);
   }
 
   const { isPending, error, data } = useQuery<ApiResponse>({
-    queryKey: ["ingredientData"],
+    queryKey: ["recipeData"],
     queryFn: async () => {
       const response = await axios.get("http://127.0.0.1:8000/api/recipe/recipes");
       
@@ -72,13 +89,21 @@ function RecipeEntry() {
   };
 
   const cardsData = transformApiData(data?.payload || []);
+  const ingredients = ingredientsData?.payload || [];
+  
+  const householdId = 1; 
+  const userId = 1; 
 
-  if (isPending) return (
+  if (isPending || ingredientsLoading) return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <SideBar />
       <main className="ml-64 pt-20">
-        <BarToDoRecipe />
+        <BarToDoRecipe 
+          ingredients={[]}
+          householdId={householdId}
+          userId={userId}
+        />
         <div className="p-8">
           <div className="flex items-center justify-center min-h-96">
             <div className="text-lg">Loading Recipes...</div>
@@ -88,17 +113,21 @@ function RecipeEntry() {
     </div>
   );
 
-  if (error) return (
+  if (error || ingredientsError) return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <SideBar />
       <main className="ml-64 pt-20">
-        <BarToDoRecipe />
+        <BarToDoRecipe 
+          ingredients={ingredients}
+          householdId={householdId}
+          userId={userId}
+        />
         <div className="p-8">
           <div className="flex items-center justify-center min-h-96">
             <div className="text-red-500 text-center">
               <h2 className="text-xl font-bold mb-2">Error Loading Data</h2>
-              <p>{error.message}</p>
+              <p>{error?.message || ingredientsError?.message}</p>
             </div>
           </div>
         </div>
@@ -112,7 +141,11 @@ function RecipeEntry() {
       <SideBar />
       
       <main className="ml-64 pt-20">
-        <BarToDoRecipe />
+        <BarToDoRecipe 
+          ingredients={ingredients}
+          householdId={householdId}
+          userId={userId}
+        />
         
         <div className="p-8 mt-15">
           {cardsData.length === 0 ? (
@@ -123,25 +156,27 @@ function RecipeEntry() {
               </div>
             </div>
           ) : (
-            <div className="flex flex-cols-1 md:flex-cols-2 lg:flex-cols-3 xl:flex-cols-4 gap-6">
-              {cardsData.map((card) => (
-                <CardRecipe
-                  key={card.id}
-                  id={card.id}
-                  title={card.title}
-                  description={card.description}
-                  prep_time_min={card.prep_time_min}
-                  cook_time_min={card.cook_time_min}
-                  serving={card.serving}
-                  textColor={card.textColor}
-                  onClick={onclick}
-                />
-              ))}
-            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 w-fit">
+            {cardsData.map((card) => (
+              <CardRecipe
+                key={card.id}
+                id={card.id}
+                title={card.title}
+                description={card.description}
+                prep_time_min={card.prep_time_min}
+                cook_time_min={card.cook_time_min}
+                serving={card.serving}
+                textColor={card.textColor}
+                onClick={onclick}
+              />
+            ))}
+          </div>
+
           )}
         </div>
       </main>
     </div>
-  );}
+  );
+}
 
 export default RecipeEntry;

@@ -6,8 +6,10 @@ import Choose from './pages/choose';
 import HouseholdMain from './pages/householdMain';
 import IngredientsEntry from './pages/IngredientsEntry';
 import RecipeEntry from './pages/RecipePage';
-
+import WeeklyShoppingList from './pages/WeeklyShoppingList'
 import WeeklyPlan from './pages/WeeklyMeelPLan';
+
+import PantryItemsEntry from './pages/PantryItemsEntry';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -32,6 +34,9 @@ function App() {
             <Route path="/ingEntry" element={<IngredientsEntry />} />
             <Route path="/recipeEntry" element={<RecipeEntry />} />
             <Route path="/mealplan" element={<WeeklyPlan />} />
+            <Route path="/items" element={<PantryItemsEntry />} />
+            <Route path="/shopping-list/weekly" element={<WeeklyShoppingList householdId={1} />} />
+
           </Routes>
         </div>
       </Router>

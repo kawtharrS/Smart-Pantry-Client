@@ -293,19 +293,22 @@ const CardRecipe = ({
             </div>
 
             <div className="flex gap-2 mt-auto pt-2 relative z-10">
+            <div className="flex flex-col w-full mt-auto pt-2 gap-2">
               <button
                 onClick={openModal('ingredients')}
-                className="flex-1 bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2.5 px-3 rounded-lg transition-colors duration-200 text-sm"
+                className="w-full !bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 rounded-lg transition-colors duration-200 text-sm text-center"
               >
                 Ingredients
               </button>
               <button
                 onClick={openModal('instructions')}
-                className="flex-1 bg-green-700 hover:bg-green-800 text-white font-semibold py-2.5 px-3 rounded-lg transition-colors duration-200 text-sm"
+                className="w-full !bg-gray-400 hover:bg-green-800 text-white font-semibold py-2 rounded-lg transition-colors duration-200 text-sm text-center"
               >
                 Instructions
               </button>
             </div>
+
+                        </div>
           </div>
         </div>
       </div>

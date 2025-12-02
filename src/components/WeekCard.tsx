@@ -7,13 +7,26 @@ interface WeekCardProps {
   day: string;
 }
 
+interface RecipeIngredient {
+  id: number;
+  name: string;
+  unit_id: number;
+  caloriesPer100g: string;
+  proteinPer100g: string;
+  fatPer100g: string;
+  carbsPer100g: string;
+}
+
 interface Recipe {
   id: number;
+  household_id: number;
+  user_id: number;
   title: string;
   description: string;
   prep_time_min: number;
   cook_time_min: number;
   serving: number;
+  ingredients: RecipeIngredient[];
 }
 
 interface MealPlan {
@@ -32,6 +45,7 @@ const WeekCard = ({ day }: WeekCardProps) => {
     queryKey: ['mealPlan', day],
     queryFn: async () => {
       const response = await axios.get(`http://127.0.0.1:8000/api/mealplan/mealplans?day=${day}`);
+      console.log(response);
       return response.data.payload || null;
     },
     retry: 1,
@@ -140,11 +154,13 @@ const WeekCard = ({ day }: WeekCardProps) => {
       )}
 
       <div className="absolute bottom-2 right-2">
+        <Link to="/shopping-list/weekly">
         <button className="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-700">
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
           </svg>
         </button>
+        </Link>
       </div>
 
       {isModalOpen && (

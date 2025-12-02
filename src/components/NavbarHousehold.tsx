@@ -39,9 +39,9 @@ const Navbar = () => {
             </Link>
           </li>
           <li>
-            <a href="#contact" className="!text-gray-700 text-2xl hover:text-amber-500 transition-colors">
+            <Link to="/items" className="!text-gray-700 text-2xl hover:text-amber-500 transition-colors">
               Ingredients
-            </a>
+            </Link>
           </li>
           <li>
             <Link to="/recipeEntry" className="!text-gray-700 text-2xl hover:text-amber-500 transition-colors">

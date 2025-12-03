@@ -9,7 +9,7 @@ const HeroHeader = () => {
 
       <div className="flex flex-col justify-center items-start w-1/2 font-black text-black z-20">
         <h1 className="text-4xl z-20 !bg-clip-text text-transparent bg-gradient-to-r from-amber-500 to-emerald-700">Smart Pantry & Meal Planner</h1>
-        <h2 className="text-xl z-20">Ready to transform your household experience</h2>
+        <h2 className="text-2xl z-20 text-black font-bold">Ready to transform your household experience</h2>
         <button className="!bg-amber-500 w-1/3 text-white px-4 py-2 rounded-lg mt-4 hover:bg-amber-600 transition-colors">
           Get Started
         </button>

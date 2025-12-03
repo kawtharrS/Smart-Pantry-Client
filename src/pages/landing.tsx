@@ -1,27 +1,17 @@
-import Navbar from '../components/Navbar'
-import HeroHeader from '../components/HeroHeader'
-import Guide from '../components/Guide'
-import Footer from '../components/Footer'
+import Navbar from "../components/Navbar";
+import HeroHeader from "../components/HeroHeader";
+import Guide from "../components/Guide";
+import Footer from "../components/Footer";
 
-function Landing() {
-  return (
-    <>
-      <section>
-        <Navbar />
-        <div>
-          <HeroHeader />
-        </div>
-      </section>
+const Landing = () => (
+  <>
+    <Navbar />
+    <main>
+      <HeroHeader />
+      <Guide />
+    </main>
+    <Footer />
+  </>
+);
 
-      <section>
-        <Guide />
-      </section>
-
-      <section>
-        <Footer />
-      </section>
-    </>
-  )
-}
-
-export default Landing
+export default Landing;

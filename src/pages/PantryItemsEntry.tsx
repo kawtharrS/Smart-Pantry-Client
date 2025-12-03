@@ -31,6 +31,7 @@ function PantryItemsEntry() {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+      console.log(response.data);
       return response.data;
     },
     enabled: !!household,

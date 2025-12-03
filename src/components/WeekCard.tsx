@@ -10,109 +10,84 @@ const WeekCard = ({ day }: WeekCardProps) => {
   const { token } = useAuth();
   const { household } = useHousehold();
   const householdId = household?.id;
-  
-  console.log('Household ID:', householdId);
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [aiResponse, setAIResponse] = useState<string>('');
+  const [aiLoading, setAILoading] = useState(false);
+
   const queryClient = useQueryClient();
 
+  // Fetch meal plan for the day
   const { data: mealPlan, isLoading: mealPlanLoading } = useQuery<MealPlan | null>({
     queryKey: ['mealPlan', day, householdId],
     queryFn: async () => {
       if (!householdId) return null;
-      
       const response = await axios.get(
         `http://127.0.0.1:8000/api/v0.1/mealplan/?day=${day}&household_id=${householdId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          }
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      console.log('Meal plan response:', response);
       return response.data.payload || null;
     },
-    retry: 1,
-    enabled: !!householdId, 
+    enabled: !!householdId,
   });
 
+  // Fetch all recipes
   const { data: recipesData = [], isLoading: recipesLoading } = useQuery<Recipe[]>({
     queryKey: ['recipes', householdId],
     queryFn: async () => {
       if (!householdId) return [];
-      
       const response = await axios.get(
         `http://127.0.0.1:8000/api/v0.1/recipe/?household_id=${householdId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          }
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       return response.data.payload || [];
     },
     enabled: !!householdId,
   });
-    
+
+  // Fetch pantry items
   const { data: pantryItems = [] } = useQuery<PantryItem[]>({
     queryKey: ['pantryItems', householdId],
     queryFn: async () => {
       if (!householdId) return [];
-      
       const response = await axios.get(
         `http://127.0.0.1:8000/api/v0.1/pantryItem/?household_id=${householdId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          }
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       return response.data.payload || [];
     },
     enabled: !!householdId,
   });
 
+  // Fetch all meal plans for missing ingredient computation
   const { data: allMealPlans = [] } = useQuery<MealPlan[]>({
     queryKey: ['allMealPlans', householdId],
     queryFn: async () => {
       if (!householdId) return [];
-      
       const response = await axios.get(
         `http://127.0.0.1:8000/api/v0.1/mealplan/?household_id=${householdId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          }
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       return response.data.payload || [];
     },
     enabled: !!householdId,
   });
 
-  const missingIngredientsAllPlans: RecipeIngredient[] = [];
-
-  allMealPlans.forEach(plan => {
-    plan.recipe?.ingredients.forEach(ingredient => {
-      const isInPantry = pantryItems.some(p => p.ingredient_id === ingredient.id);
-      if (!isInPantry) {
-        if (!missingIngredientsAllPlans.some(i => i.id === ingredient.id)) {
-          missingIngredientsAllPlans.push(ingredient);
-        }
-      }
-    });
+  // Compute missing ingredients for the current recipe
+  const missingIngredients: RecipeIngredient[] = [];
+  mealPlan?.recipe?.ingredients.forEach(i => {
+    const inPantry = pantryItems.some(p => p.ingredient_id === i.id);
+    if (!inPantry) missingIngredients.push(i);
   });
 
+  // Delete meal plan mutation
   const deleteMealPlan = useMutation({
     mutationFn: async () => {
       if (mealPlan?.id) {
         return await axios.get(
           `http://127.0.0.1:8000/api/v0.1/mealplan/delete/${mealPlan.id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            }
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
       }
       throw new Error('No meal plan ID to delete');
@@ -123,26 +98,15 @@ const WeekCard = ({ day }: WeekCardProps) => {
     },
   });
 
+  // Save meal plan mutation
   const saveMealPlan = useMutation({
     mutationFn: async (recipe_id: number) => {
-      if (!householdId) {
-        throw new Error('No household selected');
-      }
-      
-      const data = { 
-        day, 
-        recipe_id: recipe_id, 
-        household_id: householdId 
-      };
-      
+      if (!householdId) throw new Error('No household selected');
+      const data = { day, recipe_id, household_id: householdId };
       const response = await axios.post(
         'http://127.0.0.1:8000/api/v0.1/mealplan/add',
         data,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          }
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       return response.data;
     },
@@ -154,7 +118,6 @@ const WeekCard = ({ day }: WeekCardProps) => {
   });
 
   const selectRecipe = (recipe_id: number) => saveMealPlan.mutate(recipe_id);
-
   const removeRecipe = () => {
     if (mealPlan?.id && window.confirm('Are you sure you want to remove this recipe?')) {
       deleteMealPlan.mutate();
@@ -162,8 +125,34 @@ const WeekCard = ({ day }: WeekCardProps) => {
   };
 
   const openModal = () => setIsModalOpen(true);
-
   const closeModal = () => setIsModalOpen(false);
+
+  // AI Suggestion modal
+  const openAIModal = async () => {
+    if (!mealPlan?.recipe) return;
+    setIsAIModalOpen(true);
+    setAILoading(true);
+    setAIResponse('');
+
+    try {
+      const response = await axios.post(
+        'http://127.0.0.1:8000/api/v0.1/substitute',
+        {
+          ingredients: pantryItems.map(p => p.ingredient?.name).filter(Boolean),
+          missing_ingredients: missingIngredients.map(i => i.name),
+          recipe: mealPlan.recipe.title
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setAIResponse(response.data.substitution || 'No suggestion returned.');
+    } catch (err) {
+      console.error(err);
+      setAIResponse('Error fetching AI suggestion. Please try again.');
+    } finally {
+      setAILoading(false);
+    }
+  };
+  const closeAIModal = () => setIsAIModalOpen(false);
 
   if (!householdId) {
     return (
@@ -207,7 +196,7 @@ const WeekCard = ({ day }: WeekCardProps) => {
               </p>
             </div>
           </div>
-          <div className="mt-4 flex space-x-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             <button
               onClick={openModal}
               disabled={saveMealPlan.isPending || deleteMealPlan.isPending}
@@ -222,45 +211,30 @@ const WeekCard = ({ day }: WeekCardProps) => {
             >
               {deleteMealPlan.isPending ? 'Removing...' : 'Remove'}
             </button>
+            <button
+              onClick={openAIModal}
+              className="px-4 py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 transition-colors"
+            >
+              AI Suggestion
+            </button>
           </div>
         </>
       ) : (
-        <>
-          <button
-            onClick={openModal}
-            disabled={saveMealPlan.isPending}
-            className="w-20 h-20 flex items-center justify-center bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all duration-300 disabled:opacity-50"
-          >
-            {saveMealPlan.isPending ? (
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-10 h-10">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-            )}
-          </button>
-          <p className="mt-4 text-sm text-gray-500 text-center">
-            Click to add <br /> a recipe
-          </p>
-        </>
+        <button
+          onClick={openModal}
+          className="w-20 h-20 flex items-center justify-center bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all duration-300"
+        >
+          +
+        </button>
       )}
 
-      <div className="absolute bottom-2 right-2">
-        <Link to="/shopping-list/weekly">
-          <button className="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-700">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-            </svg>
-          </button>
-        </Link>
-      </div>
-
+      {/* Recipe Selection Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-11/12 max-w-md p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold text-gray-800">Select Recipe for {day}</h2>
-              <button onClick={closeModal} className="text-gray-500 hover:text-gray-700 text-2xl font-bold" disabled={saveMealPlan.isPending}>×</button>
+              <button onClick={closeModal} className="text-gray-100 text-2xl font-bold">×</button>
             </div>
 
             {recipesLoading ? (
@@ -279,8 +253,7 @@ const WeekCard = ({ day }: WeekCardProps) => {
                   <button
                     key={recipe.id}
                     onClick={() => selectRecipe(recipe.id)}
-                    disabled={saveMealPlan.isPending}
-                    className="w-full px-3 py-2 border !bg-amber-300 border-gray-300 rounded-md hover:bg-amber-400 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-3 py-2 border !bg-amber-300 border-gray-300 rounded-md hover:bg-amber-400 text-gray-800 text-left"
                   >
                     {recipe.title}
                   </button>
@@ -290,7 +263,31 @@ const WeekCard = ({ day }: WeekCardProps) => {
 
             <div className="mt-4 flex justify-between">
               <Link to="/recipeEntry" className="text-green-600 hover:text-green-700 font-semibold" onClick={closeModal}>Go to Recipes →</Link>
-              <button onClick={closeModal} className="px-4 py-2 text-gray-600 hover:text-gray-800" disabled={saveMealPlan.isPending}>Cancel</button>
+              <button onClick={closeModal} className="px-4 py-2 text-gray-100 ">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isAIModalOpen && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-11/12 max-w-lg p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-gray-800">AI Suggestion</h2>
+              <button onClick={closeAIModal} className="text-gray-500 hover:text-gray-700 text-2xl font-bold">×</button>
+            </div>
+            {aiLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mx-auto"></div>
+                <p className="mt-2 text-sm text-gray-500">Generating suggestion...</p>
+              </div>
+            ) : (
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg whitespace-pre-wrap">
+                {aiResponse}
+              </div>
+            )}
+            <div className="mt-4 flex justify-end">
+              <button onClick={closeAIModal} className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">Close</button>
             </div>
           </div>
         </div>

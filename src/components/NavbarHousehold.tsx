@@ -40,7 +40,7 @@ const Navbar = () => {
           </li>
           <li>
             <Link to="/items" className="!text-gray-700 text-2xl hover:text-amber-500 transition-colors">
-              Ingredients
+              Items
             </Link>
           </li>
           <li>

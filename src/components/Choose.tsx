@@ -6,22 +6,25 @@ import axios from 'axios';
 import { useHousehold } from '../context/HouseholdContext';
 
 const Choose = () => {
-  const {user, token } = useAuth();
-  console.log(token);
-  console.log(user);
+  const { user, token } = useAuth();
   const { setHouseholdData } = useHousehold();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [code, setCode] = useState('');
-  const navigate = useNavigate();
-
   const [newHousehold, setNewHousehold] = useState({
     name: '',
     invite_code: ''
   });
+
+  const navigate = useNavigate();
+
+  const WEBHOOK_URL = "http://localhost:5678/webhook-test/household";
+
   const addHouseholdMutation = useMutation({
     mutationFn: async () => {
       if (!token) throw new Error("No token found");
+
       const response = await axios.post(
         'http://127.0.0.1:8000/api/v0.1/household/add',
         newHousehold,
@@ -32,13 +35,24 @@ const Choose = () => {
       return response.data;
     },
 
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       const payload = data.payload;
 
       setHouseholdData({
         id: payload.id,
         name: payload.name
       });
+
+      try {
+        await axios.post(WEBHOOK_URL, {
+          token: token,
+          householdId: payload.id,
+          userId: user?.id
+        });
+        console.log("Sent to n8n successfully");
+      } catch (err) {
+        console.error("Failed sending to n8n:", err);
+      }
 
       alert("Household created successfully!");
       setNewHousehold({ name: '', invite_code: '' });
@@ -52,18 +66,39 @@ const Choose = () => {
     }
   });
 
-
- const joinHouseholdMutation = useMutation({
+  const joinHouseholdMutation = useMutation({
     mutationFn: async () => {
+      if (!token) throw new Error("No token found");
+
       const response = await axios.post(
         'http://127.0.0.1:8000/api/v0.1/household/join',
         { invite_code: code },
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
       );
       return response.data;
     },
 
-    onSuccess: () => {
+    onSuccess: async (data) => {
+      const payload = data.payload;
+
+      setHouseholdData({
+        id: payload.id,
+        name: payload.name
+      });
+
+      try {
+        await axios.post(WEBHOOK_URL, {
+          token: token,
+          householdId: payload.id,
+          userId: user?.id
+        });
+        console.log("Sent to n8n successfully");
+      } catch (err) {
+        console.error("Failed sending to n8n:", err);
+      }
+
       alert("Joined household successfully!");
       setCode("");
       setIsCodeModalOpen(false);
@@ -74,8 +109,6 @@ const Choose = () => {
       alert("Failed to join household");
     }
   });
-
-
 
   const handleAddHousehold = () => {
     if (!newHousehold.name.trim()) {
@@ -122,7 +155,7 @@ const Choose = () => {
               <div className="space-y-4">
 
                 <div>
-                  <label className="block text-sm font-medium !text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -131,13 +164,13 @@ const Choose = () => {
                     onChange={(e) =>
                       setNewHousehold({ ...newHousehold, name: e.target.value })
                     }
-                    className="w-full px-3 py-2 border !text-gray-700 border-gray-300 rounded-md focus:ring-green-500"
+                    className="w-full px-3 py-2 border text-gray-700 border-gray-300 rounded-md focus:ring-green-500"
                     placeholder="Household name"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium !text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Invite Code
                   </label>
                   <input
@@ -146,7 +179,7 @@ const Choose = () => {
                     onChange={(e) =>
                       setNewHousehold({ ...newHousehold, invite_code: e.target.value })
                     }
-                    className="w-full px-3 py-2 border !text-gray-700 border-gray-300 rounded-md focus:ring-green-500"
+                    className="w-full px-3 py-2 border text-gray-700 border-gray-300 rounded-md focus:ring-green-500"
                     placeholder="Fam123"
                   />
                 </div>
@@ -181,14 +214,14 @@ const Choose = () => {
               <div className="space-y-4">
 
                 <div>
-                  <label className="block text-sm font-medium !text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Enter Join Code <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
-                    className="w-full px-3 py-2 border !text-gray-700 border-gray-300 rounded-md focus:ring-green-500"
+                    className="w-full px-3 py-2 border text-gray-700 border-gray-300 rounded-md focus:ring-green-500"
                     placeholder="Household Code"
                   />
                 </div>

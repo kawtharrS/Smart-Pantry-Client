@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 interface RecipeIngredient {
   ingredient_id: number;
@@ -28,6 +29,7 @@ interface BarToDoRecipeProps {
 }
 
 const BarToDoRecipe = ({ ingredients, householdId, userId }: BarToDoRecipeProps) => {
+  const { token } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newRecipe, setNewRecipe] = useState({
     title: "",
@@ -45,9 +47,13 @@ const BarToDoRecipe = ({ ingredients, householdId, userId }: BarToDoRecipeProps)
     mutationFn: async (data: Recipe) => {
       console.log("Sending recipe data:", data);
       const response = await axios.post(
-        "http://127.0.0.1:8000/api/recipe/add",
+        "http://127.0.0.1:8000/api/v0.1/recipe/add",
         data
-      );
+      , {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  }
+});
       return response.data;
     },
     onSuccess: (result) => {

@@ -2,80 +2,156 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import type {WeekCardProps, RecipeIngredient, Recipe, MealPlan,PantryItem} from '../types';
+import type {WeekCardProps, RecipeIngredient, Recipe, MealPlan, PantryItem} from '../types';
+import { useAuth } from '../context/AuthContext';
+import { useHousehold } from '../context/HouseholdContext';
 
 const WeekCard = ({ day }: WeekCardProps) => {
-
+  const { token } = useAuth();
+  const { household } = useHousehold();
+  const householdId = household?.id;
+  
+  console.log('Household ID:', householdId);
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const queryClient = useQueryClient();
 
+  // Fetch meal plan for specific day AND household
   const { data: mealPlan, isLoading: mealPlanLoading } = useQuery<MealPlan | null>({
-    queryKey: ['mealPlan', day],
+    queryKey: ['mealPlan', day, householdId],
     queryFn: async () => {
-      const response = await axios.get(`http://127.0.0.1:8000/api/mealplan/?day=${day}`);
-      console.log(response);
+      if (!householdId) return null;
+      
+      const response = await axios.get(
+        `http://127.0.0.1:8000/api/v0.1/mealplan/?day=${day}&household_id=${householdId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        }
+      );
+      console.log('Meal plan response:', response);
       return response.data.payload || null;
     },
     retry: 1,
+    enabled: !!householdId, // Only run if householdId exists
   });
 
+  // Fetch recipes filtered by household
   const { data: recipesData = [], isLoading: recipesLoading } = useQuery<Recipe[]>({
-    queryKey: ['recipes'],
+    queryKey: ['recipes', householdId],
     queryFn: async () => {
-      const response = await axios.get('http://127.0.0.1:8000/api/recipe/recipes');
+      if (!householdId) return [];
+      
+      const response = await axios.get(
+        `http://127.0.0.1:8000/api/v0.1/recipe/?household_id=${householdId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        }
+      );
       return response.data.payload || [];
     },
+    enabled: !!householdId,
   });
     
+  // Fetch pantry items filtered by household
   const { data: pantryItems = [] } = useQuery<PantryItem[]>({
-    queryKey: ['pantryItems'],
+    queryKey: ['pantryItems', householdId],
     queryFn: async () => {
-      const response = await axios.get('http://127.0.0.1:8000/api/pantryItem/');
+      if (!householdId) return [];
+      
+      const response = await axios.get(
+        `http://127.0.0.1:8000/api/v0.1/pantryItem/?household_id=${householdId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        }
+      );
       return response.data.payload || [];
-    }
+    },
+    enabled: !!householdId,
   });
 
   const { data: allMealPlans = [] } = useQuery<MealPlan[]>({
-      queryKey: ['allMealPlans'],
-      queryFn: async () => {
-        const response = await axios.get('http://127.0.0.1:8000/api/mealplan/');
-        return response.data.payload || [];
-      },
-    });
+    queryKey: ['allMealPlans', householdId],
+    queryFn: async () => {
+      if (!householdId) return [];
+      
+      const response = await axios.get(
+        `http://127.0.0.1:8000/api/v0.1/mealplan/?household_id=${householdId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        }
+      );
+      return response.data.payload || [];
+    },
+    enabled: !!householdId,
+  });
 
   const missingIngredientsAllPlans: RecipeIngredient[] = [];
 
   allMealPlans.forEach(plan => {
-      plan.recipe?.ingredients.forEach(ingredient => {
-        const isInPantry = pantryItems.some(p => p.ingredient_id === ingredient.id);
-        if (!isInPantry) {
-          if (!missingIngredientsAllPlans.some(i => i.id === ingredient.id)) {
-            missingIngredientsAllPlans.push(ingredient);
-          }
+    plan.recipe?.ingredients.forEach(ingredient => {
+      const isInPantry = pantryItems.some(p => p.ingredient_id === ingredient.id);
+      if (!isInPantry) {
+        if (!missingIngredientsAllPlans.some(i => i.id === ingredient.id)) {
+          missingIngredientsAllPlans.push(ingredient);
         }
-      });
+      }
     });
+  });
 
   const deleteMealPlan = useMutation({
     mutationFn: async () => {
       if (mealPlan?.id) {
-        return await axios.get(`http://127.0.0.1:8000/api/mealplan/delete/${mealPlan.id}`);
+        return await axios.get(
+          `http://127.0.0.1:8000/api/v0.1/mealplan/delete/${mealPlan.id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            }
+          }
+        );
       }
       throw new Error('No meal plan ID to delete');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['mealPlan', day] });
+      queryClient.invalidateQueries({ queryKey: ['mealPlan', day, householdId] });
+      queryClient.invalidateQueries({ queryKey: ['allMealPlans', householdId] });
     },
   });
 
   const saveMealPlan = useMutation({
     mutationFn: async (recipe_id: number) => {
-      const data = { day, recipe_id: recipe_id, household_id: 1 };
-      const response = await axios.post('http://127.0.0.1:8000/api/mealplan/add', data);
+      if (!householdId) {
+        throw new Error('No household selected');
+      }
+      
+      const data = { 
+        day, 
+        recipe_id: recipe_id, 
+        household_id: householdId 
+      };
+      
+      const response = await axios.post(
+        'http://127.0.0.1:8000/api/v0.1/mealplan/add',
+        data,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        }
+      );
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['mealPlan', day] });
+      queryClient.invalidateQueries({ queryKey: ['mealPlan', day, householdId] });
+      queryClient.invalidateQueries({ queryKey: ['allMealPlans', householdId] });
       setIsModalOpen(false);
     },
   });
@@ -92,6 +168,15 @@ const WeekCard = ({ day }: WeekCardProps) => {
 
   const closeModal = () => setIsModalOpen(false);
 
+  if (!householdId) {
+    return (
+      <div className="relative flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg shadow-md w-full h-full p-4 bg-white">
+        <p className="text-lg font-semibold text-gray-700 mb-4">{day}</p>
+        <p className="text-sm text-gray-500">Please select a household</p>
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 w-full h-full p-4 bg-white">
       <p className="text-lg font-semibold text-gray-700 mb-4">{day}</p>
@@ -107,16 +192,16 @@ const WeekCard = ({ day }: WeekCardProps) => {
             <h3 className="text-xl font-bold text-gray-800 mb-2 truncate">{mealPlan.recipe.title}</h3>
             <p className="text-sm text-gray-600 mb-3 line-clamp-2">{mealPlan.recipe.description}</p>
             <div className="grid grid-cols-2 gap-2 text-sm">
-             <ul className="text-gray-700 text-sm">
-              {mealPlan.recipe.ingredients.map(i => {
-                const inPantry = pantryItems.some(p => p.ingredient_id === i.id);
-                return (
-                  <li key={i.id} className={inPantry ? 'text-green-600' : 'text-red-600'}>
-                    {i.name} {inPantry ? '(Available)' : '(Missing)'}
-                  </li>
-                );
-              })}
-            </ul>
+              <ul className="text-gray-700 text-sm">
+                {mealPlan.recipe.ingredients.map(i => {
+                  const inPantry = pantryItems.some(p => p.ingredient_id === i.id);
+                  return (
+                    <li key={i.id} className={inPantry ? 'text-green-600' : 'text-red-600'}>
+                      {i.name} {inPantry ? '(Available)' : '(Missing)'}
+                    </li>
+                  ); 
+                })}
+              </ul>
               <p className="text-gray-700">
                 <span className="font-semibold">Servings:</span> {mealPlan.recipe.serving}
               </p>
@@ -165,16 +250,16 @@ const WeekCard = ({ day }: WeekCardProps) => {
 
       <div className="absolute bottom-2 right-2">
         <Link to="/shopping-list/weekly">
-        <button className="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-700">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-          </svg>
-        </button>
+          <button className="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-700">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+            </svg>
+          </button>
         </Link>
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 bg flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-11/12 max-w-md p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold text-gray-800">Select Recipe for {day}</h2>
@@ -198,7 +283,7 @@ const WeekCard = ({ day }: WeekCardProps) => {
                     key={recipe.id}
                     onClick={() => selectRecipe(recipe.id)}
                     disabled={saveMealPlan.isPending}
-                    className="w-full px-3 py-2 border !bg-amber-300 border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-3 py-2 border !bg-amber-300 border-gray-300 rounded-md hover:bg-amber-400 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {recipe.title}
                   </button>
@@ -213,10 +298,7 @@ const WeekCard = ({ day }: WeekCardProps) => {
           </div>
         </div>
       )}
-
     </div>
-
-
   );
 };
 

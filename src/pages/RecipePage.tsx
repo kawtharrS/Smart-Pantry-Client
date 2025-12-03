@@ -5,9 +5,14 @@ import BarToDoRecipe from '../components/BarToDoRecipe';
 import CardRecipe from '../components/CardRecipe';
 import axios from "axios";
 import type {Recipe,ApiResponseRecipe,IngredientRecipe} from '../types';
+import { useAuth } from '../context/AuthContext';
+import { useHousehold } from '../context/HouseholdContext';
 
 
 function RecipeEntry() {
+  const { token } = useAuth();
+  const { household } = useHousehold();
+
   const {
     data: ingredientsData,
     isPending: ingredientsLoading,
@@ -15,20 +20,33 @@ function RecipeEntry() {
   } = useQuery<{ payload: IngredientRecipe[] }>({
     queryKey: ["ingredientsData"],
     queryFn: async () => {
-      const response = await axios.get("http://127.0.0.1:8000/api/ingredient/");
+      const response = await axios.get("http://127.0.0.1:8000/api/v0.1/ingredient/", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+      });
       return response.data;
     },
   });
 
   const onclick = async (id: number) => {
     alert("item deleted");
-    await axios.get(`http://127.0.0.1:8000/api/recipe/delete/${id}`);
+    await axios.get(`http://127.0.0.1:8000/api/v0.1/recipe/delete/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
   }
 
   const { isPending, error, data } = useQuery<ApiResponseRecipe>({
-    queryKey: ["recipeData"],
+    queryKey: ["recipeData", household?.id],
     queryFn: async () => {
-      const response = await axios.get("http://127.0.0.1:8000/api/recipe/");
+      // FIXED: Changed to backticks for template literal
+      const response = await axios.get(`http://127.0.0.1:8000/api/v0.1/recipe/?household_id=${household?.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+      });
       
       if (!response) {
         throw new Error(`HTTP error!`);
@@ -40,6 +58,7 @@ function RecipeEntry() {
       return result;
     },
     retry: 1,
+    enabled: !!household?.id, // Only run query if household.id exists
   });
 
   const transformApiData = (apiData: ApiResponseRecipe['payload']): Recipe[] => {
@@ -65,8 +84,9 @@ function RecipeEntry() {
   const cardsData = transformApiData(data?.payload || []);
   const ingredients = ingredientsData?.payload || [];
   
-  const householdId = 1; 
-  const userId = 1; 
+  // Get household and user IDs from context
+  const householdId = household?.id || 1; 
+  const userId = 1; // You might want to get this from auth context
 
   if (isPending || ingredientsLoading) return (
     <div className="min-h-screen bg-gray-50">
@@ -131,21 +151,20 @@ function RecipeEntry() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 w-fit">
-            {cardsData.map((card) => (
-              <CardRecipe
-                key={card.id}
-                id={card.id}
-                title={card.title}
-                description={card.description}
-                prep_time_min={card.prep_time_min}
-                cook_time_min={card.cook_time_min}
-                serving={card.serving}
-                textColor={card.textColor}
-                onClick={onclick}
-              />
-            ))}
-          </div>
-
+              {cardsData.map((card) => (
+                <CardRecipe
+                  key={card.id}
+                  id={card.id}
+                  title={card.title}
+                  description={card.description}
+                  prep_time_min={card.prep_time_min}
+                  cook_time_min={card.cook_time_min}
+                  serving={card.serving}
+                  textColor={card.textColor}
+                  onClick={onclick}
+                />
+              ))}
+            </div>
           )}
         </div>
       </main>

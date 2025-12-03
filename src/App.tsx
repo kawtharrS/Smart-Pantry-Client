@@ -6,10 +6,11 @@ import Choose from './pages/choose';
 import HouseholdMain from './pages/householdMain';
 import IngredientsEntry from './pages/IngredientsEntry';
 import RecipeEntry from './pages/RecipePage';
-import WeeklyShoppingList from './pages/WeeklyShoppingList'
 import WeeklyPlan from './pages/WeeklyMeelPLan';
-
+import RegisterPage from './pages/Register';
 import PantryItemsEntry from './pages/PantryItemsEntry';
+import { AuthProvider } from './context/AuthContext';
+import {HouseholdProvider} from './context/HouseholdContext';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -25,20 +26,23 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
-        <div className="App">
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/choose" element={<Choose />} />
-            <Route path="/householdMain" element={<HouseholdMain />} />
-            <Route path="/ingEntry" element={<IngredientsEntry />} />
-            <Route path="/recipeEntry" element={<RecipeEntry />} />
-            <Route path="/mealplan" element={<WeeklyPlan />} />
-            <Route path="/items" element={<PantryItemsEntry />} />
-            <Route path="/shopping-list/weekly" element={<WeeklyShoppingList householdId={1} />} />
-
-          </Routes>
-        </div>
+        <AuthProvider> 
+          <HouseholdProvider>
+          <div className="App">
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/choose" element={<Choose />} />
+              <Route path="/householdMain" element={<HouseholdMain />} />
+              <Route path="/ingEntry" element={<IngredientsEntry />} />
+              <Route path="/recipeEntry" element={<RecipeEntry />} />
+              <Route path="/mealplan" element={<WeeklyPlan />} />
+              <Route path="/items" element={<PantryItemsEntry />} />
+            </Routes>
+          </div>
+          </HouseholdProvider>
+        </AuthProvider>
       </Router>
     </QueryClientProvider>
   );

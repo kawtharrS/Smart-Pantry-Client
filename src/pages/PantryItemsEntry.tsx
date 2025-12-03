@@ -5,27 +5,46 @@ import BarToDo from '../components/BarToDo';
 import CardPantryItem from '../components/CardPantryitem';
 import axios from "axios";
 import type {PantryItem, PantryApiResponse,IngredientApiResponse} from '../types';
+import { useAuth } from '../context/AuthContext';
+import { useHousehold } from '../context/HouseholdContext';
 
 function PantryItemsEntry() {
+  const { token } = useAuth();
+  const { household } = useHousehold();
+
   const onclick = async (id: number) => {
     alert("Pantry item deleted");
-    await axios.delete(`http://127.0.0.1:8000/api/pantryItem/delete/${id}`);
+    await axios.get(`http://127.0.0.1:8000/api/v0.1/pantryItem/delete/${id}`, {
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                    }
+                  });
   };
 
   const { isPending, error, data } = useQuery<PantryApiResponse>({
-    queryKey: ["pantryItems"],
+    queryKey: ["pantryItems", household?.id],
     queryFn: async () => {
-      const response = await axios.get("http://127.0.0.1:8000/api/pantryItem/");
-      if (!response) throw new Error("HTTP error");
+      if (!household) throw new Error("No household selected");
+      const response = await axios.get(
+        `http://127.0.0.1:8000/api/v0.1/pantryItem/?household_id=${household.id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       return response.data;
     },
-    retry: 1,
+    enabled: !!household,
   });
+
 
   const { data: ingredientData } = useQuery<IngredientApiResponse>({
     queryKey: ["ingredients"],
     queryFn: async () => {
-      const res = await axios.get("http://127.0.0.1:8000/api/ingredient/");
+      const res = await axios.get("http://127.0.0.1:8000/api/v0.1/ingredient/", {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  }
+});
       return res.data;
     },
   });

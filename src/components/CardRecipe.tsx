@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '../context/AuthContext';
 
 interface CardRecipeProps {
   id: number;
@@ -53,10 +54,16 @@ interface ApiResponse<T> {
 }
 
 const useRecipeInstructions = (recipe_id: number) => {
+  const { token } = useAuth();
+
   return useQuery({
     queryKey: ["recipeInstructions", recipe_id],
     queryFn: async (): Promise<RecipeInstruction[]> => {
-      const response = await axios.get("http://127.0.0.1:8000/api/recipeInstruction/recipeInstructions");
+      const response = await axios.get("http://127.0.0.1:8000/api/v0.1/recipeInstruction/recipeInstructions", {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  }
+});
       if (!response) {
         throw new Error("HTTP Error!");
       }
@@ -69,10 +76,16 @@ const useRecipeInstructions = (recipe_id: number) => {
 };
 
 const useRecipeWithIngredients = (recipe_id: number) => {
+  const { token } = useAuth();
+
   return useQuery({
     queryKey: ["recipeWithIngredients", recipe_id],
     queryFn: async (): Promise<RecipeIngredient[]> => {
-      const response = await axios.get("http://127.0.0.1:8000/api/recipe/");
+      const response = await axios.get("http://127.0.0.1:8000/api/v0.1/recipe/", {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  }
+});
       if (!response) {
         throw new Error("HTTP Error!");
       }

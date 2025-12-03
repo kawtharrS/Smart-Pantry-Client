@@ -5,15 +5,20 @@ import BarToDoIngredients from '../components/BarToDoIngredients';
 import CardIngredient from '../components/CardIngredient';
 import axios from "axios";
 import type {Ingredient, ApiResponse} from '../types';
+import { useAuth } from '../context/AuthContext';
 
 function IngredientsEntry() {
 
   const queryClient = useQueryClient();
-
+  const { token } = useAuth();
   const { isPending, error, data } = useQuery<ApiResponse>({
     queryKey: ["Ingredient"],
     queryFn: async () => {
-      const response = await axios.get("http://127.0.0.1:8000/api/ingredient/");
+      const response = await axios.get("http://127.0.0.1:8000/api/v0.1/ingredient/", {
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                    }
+                  });
       if (!response) throw new Error("HTTP error!");
       return response.data;
     },
@@ -22,7 +27,11 @@ function IngredientsEntry() {
 
   const deleteIngredient = useMutation({
     mutationFn: async (id: number) => {
-      return await axios.get(`http://127.0.0.1:8000/api/ingredient/delete/${id}`);
+      return await axios.get(`http://127.0.0.1:8000/api/v0.1/ingredient/delete/${id}`, {
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                    }
+                  });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['Ingredient'] });

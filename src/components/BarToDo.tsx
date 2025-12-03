@@ -3,8 +3,11 @@ import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import type {PantryItemO, BarToDoProps} from '../types';
-
+import { useAuth } from '../context/AuthContext';
+import {useHousehold} from '../context/HouseholdContext';
 const BarToDo = ({ ingredients }: BarToDoProps) => {
+  const { token } = useAuth();
+  const {household} = useHousehold();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newPantryItem, setNewPantryItem] = useState({
     ingredient_id: 0,  
@@ -13,33 +16,50 @@ const BarToDo = ({ ingredients }: BarToDoProps) => {
     location: "",
     expiry_date: "",
   });
-
+console.log(household?.id)
   const addPantryItemMutation = useMutation({
     mutationFn: async (data: PantryItemO) => {
-      console.log("Sending to backend:", data);
+
+      if (!token) {
+        throw new Error("No token — user not logged in");
+      }
+
       const response = await axios.post(
-        "http://127.0.0.1:8000/api/pantryItem/add",
-        data
+        "http://127.0.0.1:8000/api/v0.1/pantryItem/add",
+        data,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
+
       return response.data;
     },
+
     onSuccess: (result) => {
       console.log("Pantry Item added:", result);
-      setNewPantryItem({ 
-        ingredient_id: 0, 
-        quantity: "", 
-        unit_id: 1, 
-        location: "", 
-        expiry_date: "" 
+      setNewPantryItem({
+        ingredient_id: 0,
+        quantity: "",
+        unit_id: 1,
+        location: "",
+        expiry_date: "",
       });
       setIsModalOpen(false);
     },
+
     onError: (error) => {
-      console.error(error);
+      console.log("Error:", error);
     },
   });
 
   const handleAddPantryItem = () => {
+    if (!household) {
+      alert("You must select or join a household first.");
+      return;
+    }
+
     if (newPantryItem.ingredient_id === 0) {
       alert("Please select an ingredient");
       return;
@@ -51,8 +71,8 @@ const BarToDo = ({ ingredients }: BarToDoProps) => {
     }
 
     addPantryItemMutation.mutate({
-      household_id: 1, 
-      ingredient_id: newPantryItem.ingredient_id, 
+      household_id: household.id,
+      ingredient_id: newPantryItem.ingredient_id,
       quantity: Number(newPantryItem.quantity),
       unit_id: newPantryItem.unit_id,
       location: newPantryItem.location || "",

@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import type {NewIngredientData} from '../types';
+import { useAuth } from '../context/AuthContext';
 
 const BarToDoIngredients = () => {
+  const { token } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newIngredient, setNewIngredient] = useState<NewIngredientData>({
     name: "",
@@ -19,9 +21,13 @@ const BarToDoIngredients = () => {
   const addIngredientMutation = useMutation({
     mutationFn: async (data: NewIngredientData) => {
       const response = await axios.post(
-        "http://127.0.0.1:8000/api/ingredient/add",
+        "http://127.0.0.1:8000/api/v0.1/ingredient/add",
         data
-      );
+      , {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  }
+});
       return response.data;
     },
     onSuccess: (result) => {
@@ -82,11 +88,11 @@ const BarToDoIngredients = () => {
               </button>
             </div>
 
-            <div className="space-y-4">
+           <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Name <span className="text-red-500">*</span>
-                </label>
+                 </label>
                 <input
                   type="text"
                   name="name"

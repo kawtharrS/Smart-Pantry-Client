@@ -16,7 +16,6 @@ const WeekCard = ({ day }: WeekCardProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  // Fetch meal plan for specific day AND household
   const { data: mealPlan, isLoading: mealPlanLoading } = useQuery<MealPlan | null>({
     queryKey: ['mealPlan', day, householdId],
     queryFn: async () => {
@@ -34,10 +33,9 @@ const WeekCard = ({ day }: WeekCardProps) => {
       return response.data.payload || null;
     },
     retry: 1,
-    enabled: !!householdId, // Only run if householdId exists
+    enabled: !!householdId, 
   });
 
-  // Fetch recipes filtered by household
   const { data: recipesData = [], isLoading: recipesLoading } = useQuery<Recipe[]>({
     queryKey: ['recipes', householdId],
     queryFn: async () => {
@@ -56,7 +54,6 @@ const WeekCard = ({ day }: WeekCardProps) => {
     enabled: !!householdId,
   });
     
-  // Fetch pantry items filtered by household
   const { data: pantryItems = [] } = useQuery<PantryItem[]>({
     queryKey: ['pantryItems', householdId],
     queryFn: async () => {

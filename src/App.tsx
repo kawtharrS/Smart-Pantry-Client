@@ -8,6 +8,7 @@ import IngredientsEntry from './pages/IngredientsEntry';
 import RecipeEntry from './pages/RecipePage';
 import WeeklyPlan from './pages/WeeklyMeelPLan';
 import RegisterPage from './pages/Register';
+import ListPage from './pages/ListPage';
 import PantryItemsEntry from './pages/PantryItemsEntry';
 import { AuthProvider } from './context/AuthContext';
 import {HouseholdProvider} from './context/HouseholdContext';
@@ -34,6 +35,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/choose" element={<Choose />} />
+              <Route path="/list" element={<ListPage />} />
               <Route path="/householdMain" element={<HouseholdMain />} />
               <Route path="/ingEntry" element={<IngredientsEntry />} />
               <Route path="/recipeEntry" element={<RecipeEntry />} />

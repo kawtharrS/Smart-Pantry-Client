@@ -13,14 +13,9 @@ function HouseholdMain() {
             <h1 className="text-3xl font-bold text-emerald-800 text-center mb-8">
               Household Dashboard
             </h1>
-
-            <div className="max-w-md mx-auto">
-              <CardMainHousehold 
-                title="Items Expiring Soon"
-                description=""
-              />
+            <div className="max-w-screen">
+              <CardMainHousehold />
             </div>
-
           </div>
         </div>
 

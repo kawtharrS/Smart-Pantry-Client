@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import axios from "axios";
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { api } from "../apis/dashboard";
 
 interface RecipeIngredient {
   ingredient_id: number;
@@ -38,49 +38,32 @@ const BarToDoRecipe = ({ ingredients, householdId, userId }: BarToDoRecipeProps)
     cook_time_min: "",
     serving: "",
   });
-
   const [recipeIngredients, setRecipeIngredients] = useState<RecipeIngredient[]>([
     { ingredient_id: 0, quantity: 0, unit_id: 1, note: "" }
   ]);
 
   const addRecipeMutation = useMutation({
     mutationFn: async (data: Recipe) => {
-      console.log("Sending recipe data:", data);
-      const response = await axios.post(
-        "http://127.0.0.1:8000/api/v0.1/recipe/add",
-        data
-      , {
-  headers: {
-    Authorization: `Bearer ${token}`,
-  }
-});
+      const response = await api.post("/recipe/add", data, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       return response.data;
     },
-    onSuccess: (result) => {
-      console.log("Recipe added:", result);
+    onSuccess: () => {
       setNewRecipe({ title: "", description: "", prep_time_min: "", cook_time_min: "", serving: "" });
       setRecipeIngredients([{ ingredient_id: 0, quantity: 0, unit_id: 1, note: "" }]);
       setIsModalOpen(false);
     },
-    onError: (error) => {
-      console.error(error);
-    },
+    onError: (error) => console.error("Failed to create recipe:", error),
   });
 
   const handleAddRecipe = () => {
-    if (!newRecipe.title.trim()) {
-      alert("Please enter a recipe title");
-      return;
-    }
+    if (!newRecipe.title.trim()) return alert("Please enter a recipe title");
 
     const invalidIngredients = recipeIngredients.filter(
       ing => ing.ingredient_id === 0 || ing.quantity <= 0
     );
-    
-    if (invalidIngredients.length > 0) {
-      alert("Please select valid ingredients with quantities");
-      return;
-    }
+    if (invalidIngredients.length > 0) return alert("Please select valid ingredients with quantities");
 
     const recipeData: Recipe = {
       household_id: householdId,
@@ -104,32 +87,25 @@ const BarToDoRecipe = ({ ingredients, householdId, userId }: BarToDoRecipeProps)
   };
 
   const removeIngredientRow = (index: number) => {
-    if (recipeIngredients.length === 1) {
-      setRecipeIngredients([{ ingredient_id: 0, quantity: 0, unit_id: 1, note: "" }]);
-    } else {
-      const updatedIngredients = recipeIngredients.filter((_, i) => i !== index);
-      setRecipeIngredients(updatedIngredients);
-    }
+    setRecipeIngredients(prev => prev.length === 1
+      ? [{ ingredient_id: 0, quantity: 0, unit_id: 1, note: "" }]
+      : prev.filter((_, i) => i !== index)
+    );
   };
 
   const updateIngredient = (index: number, field: keyof RecipeIngredient, value: any) => {
-    const updatedIngredients = [...recipeIngredients];
-    
-    if (field === 'quantity' || field === 'unit_id' || field === 'ingredient_id') {
-      updatedIngredients[index][field] = Number(value);
-    } else {
-      updatedIngredients[index][field] = value;
-    }
-    
-    setRecipeIngredients(updatedIngredients);
+    setRecipeIngredients(prev => {
+      const updated = [...prev];
+      updated[index][field] = field === 'quantity' || field === 'unit_id' || field === 'ingredient_id'
+        ? Number(value)
+        : value;
+      return updated;
+    });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setNewRecipe((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setNewRecipe(prev => ({ ...prev, [name]: value }));
   };
 
   return (
@@ -149,10 +125,7 @@ const BarToDoRecipe = ({ ingredients, householdId, userId }: BarToDoRecipeProps)
           <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 overflow-y-auto max-h-[90vh] shadow-lg">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-black text-emerald-900">Create New Recipe</h3>
-              <button 
-                onClick={() => setIsModalOpen(false)} 
-                className="text-gray-500 hover:text-gray-700 text-2xl"
-              >
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-700 text-2xl">
                 &times;
               </button>
             </div>
@@ -170,69 +143,37 @@ const BarToDoRecipe = ({ ingredients, householdId, userId }: BarToDoRecipeProps)
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
                     placeholder="e.g., Spaghetti Bolognese"
-                    required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                   <textarea
                     name="description"
                     value={newRecipe.description}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
-                    placeholder="Describe your recipe..."
                     rows={3}
+                    placeholder="Describe your recipe..."
                   />
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Prep Time (min)
-                    </label>
-                    <input
-                      type="number"
-                      name="prep_time_min"
-                      value={newRecipe.prep_time_min}
-                      onChange={handleInputChange}
-                      min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
-                      placeholder="0"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Cook Time (min)
-                    </label>
-                    <input
-                      type="number"
-                      name="cook_time_min"
-                      value={newRecipe.cook_time_min}
-                      onChange={handleInputChange}
-                      min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
-                      placeholder="0"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Servings
-                    </label>
-                    <input
-                      type="number"
-                      name="serving"
-                      value={newRecipe.serving}
-                      onChange={handleInputChange}
-                      min="1"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
-                      placeholder="1"
-                    />
-                  </div>
+                  {["prep_time_min", "cook_time_min", "serving"].map(field => (
+                    <div key={field}>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {field === "prep_time_min" ? "Prep Time (min)" : field === "cook_time_min" ? "Cook Time (min)" : "Servings"}
+                      </label>
+                      <input
+                        type="number"
+                        name={field}
+                        value={(newRecipe)[field]}
+                        onChange={handleInputChange}
+                        min={field === "serving" ? 1 : 0}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -246,13 +187,11 @@ const BarToDoRecipe = ({ ingredients, householdId, userId }: BarToDoRecipeProps)
                   >
                     + Add Ingredient
                   </button>
-
-                  <Link to="/ingEntry"
-                    type="button"
-                    onClick={addIngredientRow}
+                  <Link
+                    to="/ingEntry"
                     className="px-3 py-1 !bg-green-100 text-green-700 rounded-md text-sm font-medium hover:bg-green-200"
                   >
-                    - create an ingredient
+                    - Create an ingredient
                   </Link>
                 </div>
 
@@ -267,36 +206,28 @@ const BarToDoRecipe = ({ ingredients, householdId, userId }: BarToDoRecipeProps)
                           value={ingredient.ingredient_id}
                           onChange={(e) => updateIngredient(index, 'ingredient_id', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
-                          required
                         >
                           <option value={0}>Select Ingredient</option>
-                          {ingredients.map((ing) => (
-                            <option key={ing.id} value={ing.id}>
-                              {ing.name}
-                            </option>
+                          {ingredients.map(ing => (
+                            <option key={ing.id} value={ing.id}>{ing.name}</option>
                           ))}
                         </select>
                       </div>
 
                       <div className="w-32">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Quantity <span className="text-red-500">*</span>
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
                         <input
                           type="number"
                           value={ingredient.quantity}
                           onChange={(e) => updateIngredient(index, 'quantity', e.target.value)}
-                          min="0"
-                          step="0.01"
+                          min={0}
+                          step={0.01}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
-                          placeholder="0"
                         />
                       </div>
 
                       <div className="w-32">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Unit
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
                         <select
                           value={ingredient.unit_id}
                           onChange={(e) => updateIngredient(index, 'unit_id', e.target.value)}
@@ -310,24 +241,11 @@ const BarToDoRecipe = ({ ingredients, householdId, userId }: BarToDoRecipeProps)
                         </select>
                       </div>
 
-                      <div className="w-32">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Note
-                        </label>
-                        <input
-                          type="text"
-                          value={ingredient.note || ""}
-                          onChange={(e) => updateIngredient(index, 'note', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
-                          placeholder="Optional"
-                        />
-                      </div>
 
                       <button
                         type="button"
                         onClick={() => removeIngredientRow(index)}
                         className="mt-6 px-2 py-2 !bg-orange-200 text-red-600 hover:text-red-800"
-                        title="Remove ingredient"
                       >
                         ✕
                       </button>

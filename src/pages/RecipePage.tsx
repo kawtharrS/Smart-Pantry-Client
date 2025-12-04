@@ -3,27 +3,20 @@ import SideBar from '../components/sideBarNav';
 import Navbar from '../components/NavbarHousehold';
 import BarToDoRecipe from '../components/BarToDoRecipe';
 import CardRecipe from '../components/CardRecipe';
-import axios from "axios";
-import type {Recipe,ApiResponseRecipe,IngredientRecipe} from '../types';
+import { api } from "../apis/dashboard";
+import type { Recipe, ApiResponseRecipe, IngredientRecipe } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useHousehold } from '../context/HouseholdContext';
-
 
 function RecipeEntry() {
   const { token } = useAuth();
   const { household } = useHousehold();
 
-  const {
-    data: ingredientsData,
-    isPending: ingredientsLoading,
-    error: ingredientsError
-  } = useQuery<{ payload: IngredientRecipe[] }>({
+  const { data: ingredientsData, isPending: ingredientsLoading, error: ingredientsError } = useQuery<{ payload: IngredientRecipe[] }>({
     queryKey: ["ingredientsData"],
     queryFn: async () => {
-      const response = await axios.get("http://127.0.0.1:8000/api/v0.1/ingredient/", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        }
+      const response = await api.get("/ingredient/", {
+        headers: { Authorization: `Bearer ${token}` },
       });
       return response.data;
     },
@@ -31,39 +24,26 @@ function RecipeEntry() {
 
   const onclick = async (id: number) => {
     alert("item deleted");
-    await axios.get(`http://127.0.0.1:8000/api/v0.1/recipe/delete/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      }
+    await api.get(`/recipe/delete/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
     });
-  }
+  };
 
   const { isPending, error, data } = useQuery<ApiResponseRecipe>({
     queryKey: ["recipeData", household?.id],
     queryFn: async () => {
-      // FIXED: Changed to backticks for template literal
-      const response = await axios.get(`http://127.0.0.1:8000/api/v0.1/recipe/?household_id=${household?.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        }
+      const response = await api.get(`/recipe/?household_id=${household?.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
-      if (!response) {
-        throw new Error(`HTTP error!`);
-      }
-      
-      const result = await response.data;
-      console.log('API Response data', result);
-      console.log('Payload:', result.payload);
-      return result;
+      if (!response) throw new Error(`HTTP error!`);
+      return response.data;
     },
     retry: 1,
-    enabled: !!household?.id, // Only run query if household.id exists
+    enabled: !!household?.id,
   });
 
   const transformApiData = (apiData: ApiResponseRecipe['payload']): Recipe[] => {
     if (!apiData || !Array.isArray(apiData)) return [];
-    
     return apiData.map((item) => {
       const ingredientsFromItem = (item as any).ingredients ?? [];
       return {
@@ -83,21 +63,15 @@ function RecipeEntry() {
 
   const cardsData = transformApiData(data?.payload || []);
   const ingredients = ingredientsData?.payload || [];
-  
-  // Get household and user IDs from context
-  const householdId = household?.id || 1; 
-  const userId = 1; // You might want to get this from auth context
+  const householdId = household?.id || 1;
+  const userId = 1;
 
   if (isPending || ingredientsLoading) return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <SideBar />
       <main className="ml-64 pt-20">
-        <BarToDoRecipe 
-          ingredients={[]}
-          householdId={householdId}
-          userId={userId}
-        />
+        <BarToDoRecipe ingredients={[]} householdId={householdId} userId={userId} />
         <div className="p-8">
           <div className="flex items-center justify-center min-h-96">
             <div className="text-lg">Loading Recipes...</div>
@@ -112,11 +86,7 @@ function RecipeEntry() {
       <Navbar />
       <SideBar />
       <main className="ml-64 pt-20">
-        <BarToDoRecipe 
-          ingredients={ingredients}
-          householdId={householdId}
-          userId={userId}
-        />
+        <BarToDoRecipe ingredients={ingredients} householdId={householdId} userId={userId} />
         <div className="p-8">
           <div className="flex items-center justify-center min-h-96">
             <div className="text-red-500 text-center">
@@ -133,14 +103,8 @@ function RecipeEntry() {
     <div className="min-h-screen bg-gray-50 w-screen">
       <Navbar />
       <SideBar />
-      
       <main className="ml-64 pt-20">
-        <BarToDoRecipe 
-          ingredients={ingredients}
-          householdId={householdId}
-          userId={userId}
-        />
-        
+        <BarToDoRecipe ingredients={ingredients} householdId={householdId} userId={userId} />
         <div className="p-8 mt-15">
           {cardsData.length === 0 ? (
             <div className="flex items-center justify-center">

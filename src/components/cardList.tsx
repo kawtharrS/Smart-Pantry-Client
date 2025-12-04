@@ -1,16 +1,15 @@
 import type { RecipeIngredient, MealPlan, PantryItem } from '../types';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import { api } from '../apis/dashboard';
 import { useHousehold } from '../context/HouseholdContext';
 import { useAuth } from '../context/AuthContext';
 
 const CardList = () => {
+    
+
   const { household } = useHousehold();
   const { token } = useAuth();
   const householdId = household?.id;
-
-  const extractPayload = (res: any) => res.data?.payload || [];
-
 
   const {
     data: pantryItems = [],
@@ -18,20 +17,15 @@ const CardList = () => {
     error: pantryError,
   } = useQuery<PantryItem[]>({
     queryKey: ['pantryItems', householdId],
-    enabled: !!householdId && !!token,
-    retry: 2,
     queryFn: async () => {
-      const res = await axios.get(
-        `http://127.0.0.1:8000/api/v0.1/pantryItem/?household_id=${householdId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (res.data?.status !== 'success') return [];
-      return extractPayload(res);
+      const res = await api.get(`/pantryItem/?household_id=${householdId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const ressult =  res.data?.payload;
+      return ressult;
     },
   });
 
- 
   const {
     data: allMealPlans = [],
     isLoading: mealPlansLoading,
@@ -41,16 +35,13 @@ const CardList = () => {
     enabled: !!householdId && !!token,
     retry: 2,
     queryFn: async () => {
-      const res = await axios.get(
-        `http://127.0.0.1:8000/api/v0.1/mealplan/?household_id=${householdId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (res.data?.status !== 'success') return [];
-      return extractPayload(res);
+      const res = await api.get(`/mealplan/?household_id=${householdId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const ressult =  res.data?.payload;
+      return ressult;
     },
   });
-
 
   if (pantryLoading || mealPlansLoading) {
     return (
@@ -61,7 +52,6 @@ const CardList = () => {
     );
   }
 
-
   const renderError = (err: unknown) => (
     <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
       {(err as Error).message || 'An error occurred'}
@@ -70,7 +60,6 @@ const CardList = () => {
 
   if (pantryError) return renderError(pantryError);
   if (mealPlansError) return renderError(mealPlansError);
-
 
   const safePantry = Array.isArray(pantryItems) ? pantryItems : [];
   const safePlans = Array.isArray(allMealPlans) ? allMealPlans : [];
@@ -113,7 +102,6 @@ const CardList = () => {
               >
                 <span className="w-2 h-2 bg-red-500 rounded-full mr-3"></span>
                 <span className="font-medium text-gray-800">{ingredient.name}</span>
-
               </li>
             ))}
           </ul>

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 import { Link } from 'react-router-dom';
-import type {WeekCardProps, RecipeIngredient, Recipe, MealPlan, PantryItem} from '../types';
+import { api } from '../apis/dashboard';
+import type { WeekCardProps, RecipeIngredient, Recipe, MealPlan, PantryItem } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useHousehold } from '../context/HouseholdContext';
 
@@ -18,77 +18,66 @@ const WeekCard = ({ day }: WeekCardProps) => {
 
   const queryClient = useQueryClient();
 
-  // Fetch meal plan for the day
   const { data: mealPlan, isLoading: mealPlanLoading } = useQuery<MealPlan | null>({
     queryKey: ['mealPlan', day, householdId],
     queryFn: async () => {
       if (!householdId) return null;
-      const response = await axios.get(
-        `http://127.0.0.1:8000/api/v0.1/mealplan/?day=${day}&household_id=${householdId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await api.get(`/mealplan/?day=${day}&household_id=${householdId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       return response.data.payload || null;
     },
     enabled: !!householdId,
   });
 
-  // Fetch all recipes
   const { data: recipesData = [], isLoading: recipesLoading } = useQuery<Recipe[]>({
     queryKey: ['recipes', householdId],
     queryFn: async () => {
       if (!householdId) return [];
-      const response = await axios.get(
-        `http://127.0.0.1:8000/api/v0.1/recipe/?household_id=${householdId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await api.get(`/recipe/?household_id=${householdId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       return response.data.payload || [];
     },
     enabled: !!householdId,
   });
 
-  // Fetch pantry items
   const { data: pantryItems = [] } = useQuery<PantryItem[]>({
     queryKey: ['pantryItems', householdId],
     queryFn: async () => {
       if (!householdId) return [];
-      const response = await axios.get(
-        `http://127.0.0.1:8000/api/v0.1/pantryItem/?household_id=${householdId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await api.get(`/pantryItem/?household_id=${householdId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       return response.data.payload || [];
     },
     enabled: !!householdId,
   });
 
-  // Fetch all meal plans for missing ingredient computation
   const { data: allMealPlans = [] } = useQuery<MealPlan[]>({
     queryKey: ['allMealPlans', householdId],
     queryFn: async () => {
       if (!householdId) return [];
-      const response = await axios.get(
-        `http://127.0.0.1:8000/api/v0.1/mealplan/?household_id=${householdId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await api.get(`/mealplan/?household_id=${householdId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       return response.data.payload || [];
     },
     enabled: !!householdId,
   });
 
-  // Compute missing ingredients for the current recipe
   const missingIngredients: RecipeIngredient[] = [];
   mealPlan?.recipe?.ingredients.forEach(i => {
     const inPantry = pantryItems.some(p => p.ingredient_id === i.id);
     if (!inPantry) missingIngredients.push(i);
   });
 
-  // Delete meal plan mutation
   const deleteMealPlan = useMutation({
     mutationFn: async () => {
       if (mealPlan?.id) {
-        return await axios.get(
-          `http://127.0.0.1:8000/api/v0.1/mealplan/delete/${mealPlan.id}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        return await api.get(`/mealplan/delete/${mealPlan.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
       }
       throw new Error('No meal plan ID to delete');
     },
@@ -98,16 +87,13 @@ const WeekCard = ({ day }: WeekCardProps) => {
     },
   });
 
-  // Save meal plan mutation
   const saveMealPlan = useMutation({
     mutationFn: async (recipe_id: number) => {
       if (!householdId) throw new Error('No household selected');
       const data = { day, recipe_id, household_id: householdId };
-      const response = await axios.post(
-        'http://127.0.0.1:8000/api/v0.1/mealplan/add',
-        data,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await api.post('/mealplan/add', data, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       return response.data;
     },
     onSuccess: () => {
@@ -127,31 +113,31 @@ const WeekCard = ({ day }: WeekCardProps) => {
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
 
-  // AI Suggestion modal
   const openAIModal = async () => {
-    if (!mealPlan?.recipe) return;
-    setIsAIModalOpen(true);
-    setAILoading(true);
-    setAIResponse('');
+      if (!mealPlan?.recipe) return;
+      setIsAIModalOpen(true);
+      setAILoading(true);
+      setAIResponse('');
 
-    try {
-      const response = await axios.post(
-        'http://127.0.0.1:8000/api/v0.1/substitute',
-        {
-          ingredients: pantryItems.map(p => p.ingredient?.name).filter(Boolean),
-          missing_ingredients: missingIngredients.map(i => i.name),
-          recipe: mealPlan.recipe.title
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setAIResponse(response.data.substitution || 'No suggestion returned.');
-    } catch (err) {
-      console.error(err);
-      setAIResponse('Error fetching AI suggestion. Please try again.');
-    } finally {
-      setAILoading(false);
-    }
-  };
+      try {
+        const response = await api.post(
+          '/substitute',
+          {
+            ingredients: pantryItems.map(p => p.ingredient?.name).filter(Boolean),
+            missing_ingredients: missingIngredients.map(i => i.name),
+            recipe: mealPlan.recipe.title
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setAIResponse(response.data.substitution || 'No suggestion returned.');
+      } catch (err) {
+        console.error(err);
+        setAIResponse('Error fetching AI suggestion. Please try again.');
+      } finally {
+        setAILoading(false);
+      }
+    
+    };
   const closeAIModal = () => setIsAIModalOpen(false);
 
   if (!householdId) {
@@ -185,7 +171,7 @@ const WeekCard = ({ day }: WeekCardProps) => {
                     <li key={i.id} className={inPantry ? 'text-green-600' : 'text-red-600'}>
                       {i.name} {inPantry ? '(Available)' : '(Missing)'}
                     </li>
-                  ); 
+                  );
                 })}
               </ul>
               <p className="text-gray-700">
@@ -228,7 +214,6 @@ const WeekCard = ({ day }: WeekCardProps) => {
         </button>
       )}
 
-      {/* Recipe Selection Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-11/12 max-w-md p-6">
@@ -263,7 +248,7 @@ const WeekCard = ({ day }: WeekCardProps) => {
 
             <div className="mt-4 flex justify-between">
               <Link to="/recipeEntry" className="text-green-600 hover:text-green-700 font-semibold" onClick={closeModal}>Go to Recipes →</Link>
-              <button onClick={closeModal} className="px-4 py-2 text-gray-100 ">Cancel</button>
+              <button onClick={closeModal} className="px-4 py-2 text-gray-100">Cancel</button>
             </div>
           </div>
         </div>
@@ -282,7 +267,7 @@ const WeekCard = ({ day }: WeekCardProps) => {
                 <p className="mt-2 text-sm text-gray-500">Generating suggestion...</p>
               </div>
             ) : (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg whitespace-pre-wrap">
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg whitespace-pre-wrap text-black">
                 {aiResponse}
               </div>
             )}

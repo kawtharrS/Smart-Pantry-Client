@@ -1,57 +1,46 @@
-import { useQuery } from '@tanstack/react-query';
-import SideBar from '../components/sideBarNav';
-import Navbar from '../components/NavbarHousehold';
-import BarToDo from '../components/BarToDo';
-import CardPantryItem from '../components/CardPantryitem';
-import axios from "axios";
-import type {PantryItem, PantryApiResponse,IngredientApiResponse} from '../types';
-import { useAuth } from '../context/AuthContext';
-import { useHousehold } from '../context/HouseholdContext';
+import { useQuery } from "@tanstack/react-query";
+import SideBar from "../components/sideBarNav";
+import Navbar from "../components/NavbarHousehold";
+import BarToDo from "../components/BarToDo";
+import CardPantryItem from "../components/CardPantryitem";
+import { api } from "../apis/dashboard";
+import { useAuth } from "../context/AuthContext";
+import { useHousehold } from "../context/HouseholdContext";
+import type { PantryItem, PantryApiResponse, IngredientApiResponse } from "../types";
 
-function PantryItemsEntry() {
+const PantryItemsEntry = () => {
   const { token } = useAuth();
   const { household } = useHousehold();
 
-  const onclick = async (id: number) => {
-    alert("Pantry item deleted");
-    await axios.get(`http://127.0.0.1:8000/api/v0.1/pantryItem/delete/${id}`, {
-                    headers: {
-                      Authorization: `Bearer ${token}`,
-                    }
-                  });
+  const deletePantryItem = async (id: number) => {
+    await api.get(`/pantryItem/delete/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
   };
 
   const { isPending, error, data } = useQuery<PantryApiResponse>({
     queryKey: ["pantryItems", household?.id],
     queryFn: async () => {
-      if (!household) throw new Error("No household selected");
-      const response = await axios.get(
-        `http://127.0.0.1:8000/api/v0.1/pantryItem/?household_id=${household.id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      console.log(response.data);
+      const response = await api.get(`/pantryItem/?household_id=${household?.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       return response.data;
     },
     enabled: !!household,
   });
 
-
   const { data: ingredientData } = useQuery<IngredientApiResponse>({
     queryKey: ["ingredients"],
     queryFn: async () => {
-      const res = await axios.get("http://127.0.0.1:8000/api/v0.1/ingredient/", {
-  headers: {
-    Authorization: `Bearer ${token}`,
-  }
-});
+      const res = await api.get("/ingredient/", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       return res.data;
     },
   });
 
-  const transformPantryData = (apiData: PantryApiResponse['payload']): PantryItem[] => {
-    if (!apiData || !Array.isArray(apiData)) return [];
+  const transformPantryData = (apiData: PantryApiResponse["payload"]): PantryItem[] => {
+    if (!apiData) return [];
     return apiData.map((item) => ({
       id: item.id,
       ingredient_id: item.ingredient.id,
@@ -70,9 +59,7 @@ function PantryItemsEntry() {
       <SideBar />
       <div className="flex-1 ml-64 min-h-screen bg-gray-50">
         <Navbar />
-
-        <BarToDo ingredients={ingredientData?.payload || []} />
-
+        <BarToDo ingredients={ingredientData?.payload || []} householdId={household?.id ?? 0} />
         {isPending && (
           <div className="p-6 mt-40 flex items-center justify-center min-h-96">
             <div className="text-lg">Loading pantry items...</div>
@@ -100,7 +87,7 @@ function PantryItemsEntry() {
                   expiry_date={card.expiry_date}
                   location={card.location}
                   textColor={card.textColor}
-                  onClick={onclick}
+                  onClick={deletePantryItem}
                 />
               ))}
             </div>
@@ -109,6 +96,6 @@ function PantryItemsEntry() {
       </div>
     </section>
   );
-}
+};
 
 export default PantryItemsEntry;

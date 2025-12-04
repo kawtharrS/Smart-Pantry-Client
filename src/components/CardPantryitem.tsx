@@ -1,4 +1,4 @@
-import type {CardPantryItemProps} from '../types';
+import type { CardPantryItemProps } from "../types";
 
 const CardPantryItem = ({
   id,

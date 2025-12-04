@@ -1,44 +1,33 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import type {PantryItemO, BarToDoProps} from '../types';
-import { useAuth } from '../context/AuthContext';
-import {useHousehold} from '../context/HouseholdContext';
+import { api } from "../apis/dashboard";
+import { useAuth } from "../context/AuthContext";
+import { useHousehold } from "../context/HouseholdContext";
+import type { PantryItemO, BarToDoProps } from "../types";
+
 const BarToDo = ({ ingredients }: BarToDoProps) => {
   const { token } = useAuth();
-  const {household} = useHousehold();
+  const { household } = useHousehold();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newPantryItem, setNewPantryItem] = useState({
-    ingredient_id: 0,  
+    ingredient_id: 0,
     quantity: "",
     unit_id: 1,
     location: "",
     expiry_date: "",
   });
-console.log(household?.id)
+
+  const navigate = useNavigate();
+
   const addPantryItemMutation = useMutation({
     mutationFn: async (data: PantryItemO) => {
-
-      if (!token) {
-        throw new Error("No token — user not logged in");
-      }
-
-      const response = await axios.post(
-        "http://127.0.0.1:8000/api/v0.1/pantryItem/add",
-        data,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
+      const response = await api.post("/pantryItem/add", data, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       return response.data;
     },
-
-    onSuccess: (result) => {
-      console.log("Pantry Item added:", result);
+    onSuccess: () => {
       setNewPantryItem({
         ingredient_id: 0,
         quantity: "",
@@ -48,27 +37,10 @@ console.log(household?.id)
       });
       setIsModalOpen(false);
     },
-
-    onError: (error) => {
-      console.log("Error:", error);
-    },
   });
 
   const handleAddPantryItem = () => {
-    if (!household) {
-      alert("You must select or join a household first.");
-      return;
-    }
-
-    if (newPantryItem.ingredient_id === 0) {
-      alert("Please select an ingredient");
-      return;
-    }
-
-    if (!newPantryItem.quantity || Number(newPantryItem.quantity) <= 0) {
-      alert("Please enter a valid quantity");
-      return;
-    }
+    if (!household || newPantryItem.ingredient_id === 0 || !newPantryItem.quantity) return;
 
     addPantryItemMutation.mutate({
       household_id: household.id,
@@ -79,41 +51,19 @@ console.log(household?.id)
       expiry_date: newPantryItem.expiry_date,
     });
   };
-    const navigate = useNavigate();
 
-    const handleIngredientChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const value = e.target.value;
-
-      if (value === "add-new") {
-        navigate("/ingEntry"); 
-      } else {
-        setNewPantryItem((prev) => ({
-          ...prev,
-          ingredient_id: Number(value), 
-        }));
-      }
-    };
-
+  const handleIngredientChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === "add-new") navigate("/ingEntry");
+    else setNewPantryItem((prev) => ({ ...prev, ingredient_id: Number(value) }));
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    
-    if (name === 'unit_id') {
-      setNewPantryItem((prev) => ({
-        ...prev,
-        [name]: Number(value),
-      }));
-    } else if (name === 'ingredient_id') {
-      setNewPantryItem((prev) => ({
-        ...prev,
-        [name]: Number(value),
-      }));
-    } else {
-      setNewPantryItem((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
+    setNewPantryItem((prev) => ({
+      ...prev,
+      [name]: name.includes("id") ? Number(value) : value,
+    }));
   };
 
   return (
@@ -133,10 +83,7 @@ console.log(household?.id)
           <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 overflow-y-auto max-h-[80vh] shadow-lg">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-black text-emerald-900">Add New Pantry Item</h3>
-              <button 
-                onClick={() => setIsModalOpen(false)} 
-                className="text-gray-500 hover:text-gray-700 text-2xl"
-              >
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-700 text-2xl">
                 &times;
               </button>
             </div>
@@ -147,28 +94,23 @@ console.log(household?.id)
                   Ingredient <span className="text-red-500">*</span>
                 </label>
                 <select
-                name="ingredient_id"
-                value={newPantryItem.ingredient_id}
-                onChange={handleIngredientChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
-                required
-              >
-                <option value={0}>Select Ingredient</option>
-                {ingredients.map((ing) => (
-                  <option key={ing.id} value={ing.id}>{ing.name}</option>
-                ))}
-                <option value="add-new">Add new Ingredient</option>
-              </select>
-
-                {newPantryItem.ingredient_id === 0 && (
-                  <p className="text-red-500 text-xs mt-1">Please select an ingredient</p>
-                )}
+                  name="ingredient_id"
+                  value={newPantryItem.ingredient_id}
+                  onChange={handleIngredientChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
+                >
+                  <option value={0}>Select Ingredient</option>
+                  {ingredients.map((ing) => (
+                    <option key={ing.id} value={ing.id}>
+                      {ing.name}
+                    </option>
+                  ))}
+                  <option value="add-new">Add new Ingredient</option>
+                </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Quantity <span className="text-red-500">*</span>
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Quantity *</label>
                 <input
                   type="number"
                   name="quantity"
@@ -177,15 +119,11 @@ console.log(household?.id)
                   min="0"
                   step="0.01"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
-                  placeholder="0"
-                  required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Unit
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
                 <select
                   name="unit_id"
                   value={newPantryItem.unit_id}
@@ -201,9 +139,7 @@ console.log(household?.id)
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Location
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
                 <input
                   type="text"
                   name="location"
@@ -215,9 +151,7 @@ console.log(household?.id)
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Expiry Date
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
                 <input
                   type="date"
                   name="expiry_date"
@@ -234,12 +168,6 @@ console.log(household?.id)
               >
                 {addPantryItemMutation.isPending ? "Adding..." : "Add Pantry Item"}
               </button>
-
-              {addPantryItemMutation.isError && (
-                <div className="text-red-600 text-sm mt-2 p-2 bg-red-50 rounded">
-                  Failed to add pantry item. 
-                </div>
-              )}
             </div>
           </div>
         </div>

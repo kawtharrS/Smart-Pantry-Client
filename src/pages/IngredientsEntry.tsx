@@ -1,52 +1,35 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import SideBar from '../components/sideBarNav';
-import Navbar from '../components/NavbarHousehold';
-import BarToDoIngredients from '../components/BarToDoIngredients';
-import CardIngredient from '../components/CardIngredient';
-import axios from "axios";
-import type {Ingredient, ApiResponse} from '../types';
-import { useAuth } from '../context/AuthContext';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Navbar from "../components/NavbarHousehold";
+import BarToDoIngredients from "../components/BarToDoIngredients";
+import CardIngredient from "../components/CardIngredient";
+import { api } from "../apis/dashboard";
+import { useAuth } from "../context/AuthContext";
+import type { Ingredient, ApiResponse } from "../types";
 
-function IngredientsEntry() {
-
-  const queryClient = useQueryClient();
+const IngredientsEntry = () => {
   const { token } = useAuth();
+  const queryClient = useQueryClient();
+
   const { isPending, error, data } = useQuery<ApiResponse>({
     queryKey: ["Ingredient"],
     queryFn: async () => {
-      const response = await axios.get("http://127.0.0.1:8000/api/v0.1/ingredient/", {
-                    headers: {
-                      Authorization: `Bearer ${token}`,
-                    }
-                  });
-      if (!response) throw new Error("HTTP error!");
-      return response.data;
+      const res = await api.get("/ingredient/", { headers: { Authorization: `Bearer ${token}` } });
+      return res.data;
     },
     retry: 1,
   });
 
   const deleteIngredient = useMutation({
-    mutationFn: async (id: number) => {
-      return await axios.get(`http://127.0.0.1:8000/api/v0.1/ingredient/delete/${id}`, {
-                    headers: {
-                      Authorization: `Bearer ${token}`,
-                    }
-                  });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['Ingredient'] });
-    },
+    mutationFn: (id: number) => api.get(`/ingredient/delete/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["Ingredient"] }),
   });
 
   const onclick = (id: number) => {
-    if (window.confirm('Are you sure you want to remove this recipe?')) {
-      deleteIngredient.mutate(id);
-    }
+    if (window.confirm("Are you sure you want to remove this ingredient?")) deleteIngredient.mutate(id);
   };
 
-  const transformApiData = (apiData: ApiResponse['payload']): Ingredient[] => {
-    if (!apiData || !Array.isArray(apiData)) return [];
-
+  const transformApiData = (apiData: ApiResponse["payload"]): Ingredient[] => {
+    if (!apiData) return [];
     return apiData.map((item) => ({
       id: item.id,
       name: item.name,
@@ -60,61 +43,34 @@ function IngredientsEntry() {
     }));
   };
 
-  if (isPending) return (
-    <section className="flex">
-      <SideBar />
-      <div className="flex-1 ml-64 min-h-screen bg-gray-50">
-        <Navbar />
-        <BarToDoIngredients />
-        <div className="p-6 mt-40 flex items-center justify-center min-h-96">
-          <div className="text-lg">Loading ingredients...</div>
-        </div>
-      </div>
-    </section>
-  );
-
-  if (error) return (
-    <section className="flex">
-      <SideBar />
-      <div className="flex-1 ml-64 min-h-screen bg-gray-50">
-        <Navbar />
-        <BarToDoIngredients />
-        <div className="p-6 mt-40 flex items-center justify-center min-h-96 text-center text-red-500">
-          <h2 className="text-xl font-bold mb-2">Error Loading Data</h2>
-          <p>{(error as Error).message}</p>
-        </div>
-      </div>
-    </section>
-  );
-
   const cardsData = transformApiData(data?.payload || []);
 
   return (
-    <section className="flex">
-      <SideBar />
-      <div className="flex-1 ml-64 min-h-screen bg-gray-50">
-        <Navbar />
+    <section className="flex flex-col min-h-screen bg-gray-50 w-screen">
+      <Navbar />
+
+      <div className=" w-screen">
         <BarToDoIngredients />
 
-        <div className="p-6 w-screen mt-35">
+        {isPending && (
+          <div className="p-6 mt-60 flex items-center justify-center text-lg">
+            Loading ingredients...
+          </div>
+        )}
+        {error && (
+          <div className="p-6 mt-24 flex items-center justify-center min-h-[50vh] text-center text-red-500">
+            <h2 className="text-xl font-bold mb-2">Error Loading Data</h2>
+            <p>{(error as Error).message}</p>
+          </div>
+        )}
+
+        <div className="p-6 mt-40">
           {cardsData.length === 0 ? (
             <div className="text-center py-8 text-gray-500">No ingredients found.</div>
           ) : (
-            <div className="flex flex-wrap gap-6">
+            <div className="flex flex-wrap gap-6 justify-center">
               {cardsData.map((card) => (
-                <CardIngredient
-                  key={card.id}
-                  id={card.id}
-                  name={card.name}
-                  calories={card.calories}
-                  fats={card.fats}
-                  carbs={card.carbs}
-                  protein={card.protein}
-                  quantity={card.quantity}
-                  expiry_date={card.expiry_date}
-                  textColor={card.textColor}
-                  onClick={onclick}
-                />
+                <CardIngredient key={card.id} {...card} onClick={onclick} />
               ))}
             </div>
           )}
@@ -122,6 +78,6 @@ function IngredientsEntry() {
       </div>
     </section>
   );
-}
+};
 
 export default IngredientsEntry;

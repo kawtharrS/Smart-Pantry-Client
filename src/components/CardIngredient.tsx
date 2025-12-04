@@ -1,22 +1,15 @@
-import { Link } from 'react-router-dom';
-import type {CardIngredientProps} from '../types'
+import { Link } from "react-router-dom";
+import type { CardIngredientProps } from "../types";
 
 const CardIngredient = ({
-  id,
-  name,
-  calories,
-  fats,
-  carbs,
-  protein,
-  expiry_date,
-  quantity,
-  textColor = "text-amber-600",
-  onClick,
+  id, name, calories, protein, fats, carbs, expiry_date, quantity,
+  textColor = "text-amber-600", onClick,
 }: CardIngredientProps) => {
   const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault(); 
-    onClick?.(id);     
+    e.preventDefault();
+    onClick?.(id);
   };
+
   return (
     <Link
       to="/ingEntry"
@@ -52,9 +45,7 @@ const CardIngredient = ({
             <div className="text-gray-500">Quantity</div>
           </div>
           <div className="text-center">
-            <div className="font-semibold text-gray-800">
-              {expiry_date ? new Date(expiry_date).toLocaleDateString() : 'N/A'}
-            </div>
+            <div className="font-semibold text-gray-800">{expiry_date ? new Date(expiry_date).toLocaleDateString() : "N/A"}</div>
             <div className="text-gray-500">Expires</div>
           </div>
         </div>

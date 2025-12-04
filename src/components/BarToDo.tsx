@@ -68,7 +68,7 @@ const BarToDo = ({ ingredients }: BarToDoProps) => {
 
   return (
     <>
-      <div className="flex fixed rounded-r-2xl top-20 left-64 p-3 bg-gray-400 backdrop-blur-md shadow-md w-[calc(100%-16rem)] z-40 justify-between">
+      <div className="flex fixed rounded-r-2xl top-20 p-3 bg-gray-400 backdrop-blur-md shadow-md max-w-screen z-40 justify-between">
         <h2 className="p-2 font-bold text-xl flex-1">Add Pantry Item</h2>
         <button
           onClick={() => setIsModalOpen(true)}

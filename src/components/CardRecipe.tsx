@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
+import { useHousehold } from '../context/HouseholdContext';
 import { api } from "../apis/dashboard";
 
 interface CardRecipeProps {
@@ -75,11 +76,11 @@ const useRecipeInstructions = (recipe_id: number) => {
 
 const useRecipeWithIngredients = (recipe_id: number) => {
   const { token } = useAuth();
-
+  const { household } = useHousehold(); 
   return useQuery({
     queryKey: ["recipeWithIngredients", recipe_id],
     queryFn: async (): Promise<RecipeIngredient[]> => {
-      const response = await api.get("/recipe/", {
+      const response = await api.get(`/recipe/?household_id=${household?.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response) throw new Error("HTTP Error!");
@@ -88,6 +89,7 @@ const useRecipeWithIngredients = (recipe_id: number) => {
       return recipe?.ingredients || [];
     },
     retry: 1,
+    enabled: !!household?.id, 
   });
 };
 

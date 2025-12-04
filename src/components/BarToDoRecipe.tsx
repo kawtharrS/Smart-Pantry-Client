@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from "../apis/dashboard";
@@ -8,7 +8,6 @@ interface RecipeIngredient {
   ingredient_id: number;
   quantity: number;
   unit_id: number;
-  note?: string;
 }
 
 interface Recipe {
@@ -30,6 +29,7 @@ interface BarToDoRecipeProps {
 
 const BarToDoRecipe = ({ ingredients, householdId, userId }: BarToDoRecipeProps) => {
   const { token } = useAuth();
+  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newRecipe, setNewRecipe] = useState({
     title: "",
@@ -39,31 +39,78 @@ const BarToDoRecipe = ({ ingredients, householdId, userId }: BarToDoRecipeProps)
     serving: "",
   });
   const [recipeIngredients, setRecipeIngredients] = useState<RecipeIngredient[]>([
-    { ingredient_id: 0, quantity: 0, unit_id: 1, note: "" }
+    { ingredient_id: 0, quantity: 0, unit_id: 1 }
   ]);
 
   const addRecipeMutation = useMutation({
     mutationFn: async (data: Recipe) => {
-      const response = await api.post("/recipe/add", data, {
+      const recipeResponse = await api.post("/recipe/add", {
+        household_id: data.household_id,
+        user_id: data.user_id,
+        title: data.title,
+        description: data.description,
+        prep_time_min: data.prep_time_min,
+        cook_time_min: data.cook_time_min,
+        serving: data.serving,
+      }, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      return response.data;
+
+      console.log("Recipe created:", recipeResponse.data);
+
+      const recipeId = recipeResponse.data.payload?.id || recipeResponse.data.id;
+      
+      if (!recipeId) {
+        console.error("Recipe response:", recipeResponse.data);
+        throw new Error("Failed to get recipe ID from response");
+      }
+
+      console.log("Recipe ID:", recipeId);
+      console.log("Adding ingredients:", data.ingredients);
+
+      const ingredientPromises = data.ingredients.map(ingredient => {
+        console.log("Adding ingredient:", { recipe_id: recipeId, ...ingredient });
+        return api.post("/recipeIngredient/add", {
+          recipe_id: recipeId,
+          ingredient_id: ingredient.ingredient_id,
+          quantity: ingredient.quantity,
+          unit_id: ingredient.unit_id,
+        }, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      });
+
+      const ingredientResults = await Promise.all(ingredientPromises);
+      console.log("Ingredients added:", ingredientResults);
+
+      return { recipeId, recipeData: recipeResponse.data };
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recipeData"] });
+      
       setNewRecipe({ title: "", description: "", prep_time_min: "", cook_time_min: "", serving: "" });
-      setRecipeIngredients([{ ingredient_id: 0, quantity: 0, unit_id: 1, note: "" }]);
+      setRecipeIngredients([{ ingredient_id: 0, quantity: 0, unit_id: 1 }]);
       setIsModalOpen(false);
+      
+      alert("Recipe created successfully!");
     },
-    onError: (error) => console.error("Failed to create recipe:", error),
+    onError: (error: any) => {
+      console.error("Failed to create recipe:", error);
+      console.error("Error details:", error.response?.data);
+      alert(`Failed to create recipe: ${error.response?.data?.message || error.message || "Unknown error"}`);
+    },
   });
 
   const handleAddRecipe = () => {
     if (!newRecipe.title.trim()) return alert("Please enter a recipe title");
 
-    const invalidIngredients = recipeIngredients.filter(
-      ing => ing.ingredient_id === 0 || ing.quantity <= 0
+    const validIngredients = recipeIngredients.filter(
+      ing => ing.ingredient_id > 0 && ing.quantity > 0
     );
-    if (invalidIngredients.length > 0) return alert("Please select valid ingredients with quantities");
+    
+    if (validIngredients.length === 0) {
+      return alert("Please add at least one valid ingredient with quantity");
+    }
 
     const recipeData: Recipe = {
       household_id: householdId,
@@ -73,7 +120,7 @@ const BarToDoRecipe = ({ ingredients, householdId, userId }: BarToDoRecipeProps)
       prep_time_min: parseInt(newRecipe.prep_time_min) || 0,
       cook_time_min: parseInt(newRecipe.cook_time_min) || 0,
       serving: parseInt(newRecipe.serving) || 1,
-      ingredients: recipeIngredients,
+      ingredients: validIngredients,
     };
 
     addRecipeMutation.mutate(recipeData);
@@ -82,13 +129,13 @@ const BarToDoRecipe = ({ ingredients, householdId, userId }: BarToDoRecipeProps)
   const addIngredientRow = () => {
     setRecipeIngredients([
       ...recipeIngredients,
-      { ingredient_id: 0, quantity: 0, unit_id: 1, note: "" }
+      { ingredient_id: 0, quantity: 0, unit_id: 1 }
     ]);
   };
 
   const removeIngredientRow = (index: number) => {
     setRecipeIngredients(prev => prev.length === 1
-      ? [{ ingredient_id: 0, quantity: 0, unit_id: 1, note: "" }]
+      ? [{ ingredient_id: 0, quantity: 0, unit_id: 1 }]
       : prev.filter((_, i) => i !== index)
     );
   };
@@ -96,9 +143,7 @@ const BarToDoRecipe = ({ ingredients, householdId, userId }: BarToDoRecipeProps)
   const updateIngredient = (index: number, field: keyof RecipeIngredient, value: any) => {
     setRecipeIngredients(prev => {
       const updated = [...prev];
-      updated[index][field] = field === 'quantity' || field === 'unit_id' || field === 'ingredient_id'
-        ? Number(value)
-        : value;
+      updated[index][field] = Number(value);
       return updated;
     });
   };
@@ -167,7 +212,7 @@ const BarToDoRecipe = ({ ingredients, householdId, userId }: BarToDoRecipeProps)
                       <input
                         type="number"
                         name={field}
-                        value={(newRecipe)[field]}
+                        value={(newRecipe as any)[field]}
                         onChange={handleInputChange}
                         min={field === "serving" ? 1 : 0}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
@@ -191,7 +236,7 @@ const BarToDoRecipe = ({ ingredients, householdId, userId }: BarToDoRecipeProps)
                     to="/ingEntry"
                     className="px-3 py-1 !bg-green-100 text-green-700 rounded-md text-sm font-medium hover:bg-green-200"
                   >
-                    - Create an ingredient
+                    Create Ingredient
                   </Link>
                 </div>
 
@@ -241,11 +286,10 @@ const BarToDoRecipe = ({ ingredients, householdId, userId }: BarToDoRecipeProps)
                         </select>
                       </div>
 
-
                       <button
                         type="button"
                         onClick={() => removeIngredientRow(index)}
-                        className="mt-6 px-2 py-2 !bg-orange-200 text-red-600 hover:text-red-800"
+                        className="mt-6 px-2 py-2 !bg-orange-200 text-red-600 hover:text-red-800 rounded"
                       >
                         ✕
                       </button>
@@ -264,7 +308,7 @@ const BarToDoRecipe = ({ ingredients, householdId, userId }: BarToDoRecipeProps)
 
               {addRecipeMutation.isError && (
                 <div className="text-red-600 text-sm mt-2 p-2 bg-red-50 rounded">
-                  Failed to create recipe.
+                  Failed to create recipe. Please try again.
                 </div>
               )}
             </div>
